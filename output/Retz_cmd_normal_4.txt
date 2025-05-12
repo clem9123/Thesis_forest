@@ -1,0 +1,17 @@
+# Forceps script command file, format SimulationCommandReader2 (Xavier Morin)
+
+setupFileName = forcepsBasic_new.setup
+numberOfYearsToBeJumped = 1
+exportTimeStep = 1
+
+#siteFileName	climateFileName	inventoryFileName	potentialSpeciesList	Scenario
+forceps.site	forceps.climate.bern	forceps_normal_4.inv	17 14 23 13	80_3_1_25_FSyl-80
+forceps.site	forceps.climate.bern	forceps_normal_4.inv	17 14 23 13	80_3_1_25_FSyl-80
+forceps.site	forceps.climate.bern	forceps_normal_4.inv	17 14 23 13	80_3_1_25_FSyl-80
+forceps.site	forceps.climate.bern	forceps_normal_4.inv	17 14 23 13	80_3_1_25_FSyl-80
+forceps.site	forceps.climate.bern	forceps_normal_4.inv	17 14 23 13	80_3_1_25_FSyl-80
+forceps.site	forceps.climate.bern	forceps_normal_4.inv	17 14 23 13	80_3_1_25_FSyl-80
+forceps.site	forceps.climate.bern	forceps_normal_4.inv	17 14 23 13	80_3_1_25_FSyl-80
+forceps.site	forceps.climate.bern	forceps_normal_4.inv	17 14 23 13	80_3_1_25_FSyl-80
+forceps.site	forceps.climate.bern	forceps_normal_4.inv	17 14 23 13	80_3_1_25_FSyl-80
+forceps.site	forceps.climate.bern	forceps_normal_4.inv	17 14 23 13	80_3_1_25_FSyl-80

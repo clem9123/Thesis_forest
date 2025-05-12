@@ -1,0 +1,132 @@
+---
+title: "Forceps sensibilité au choix de la méthode de determination du diamètre"
+author: "Clémentine de Montgolfier"
+output: html_document
+---
+
+```{r options, include=FALSE}
+# set working dir for all chunks to ..
+knitr::opts_knit$set(root.dir = "..")
+```
+
+```{r libraries, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(patchwork)
+library(knitr)
+library(kableExtra)
+```
+
+# Load data
+
+```{r load_data}
+# Define the types of inventory and corresponding folder names
+inventory_types <- c("unif", "normal_4", "normal_6", "mean", "min", "max")
+simulation_files <- unlist(lapply(inventory_types, function(type) {
+    paste0("C:/Capsis4/data/forceps/clementine/output-Retz_cmd_", type, ".txt/forceps.climate.bern_forceps_", type, ".inv_simulation_", 1:10, "productivityScene.txt")
+}))
+
+# Import and combine data from multiple simulation files
+forceps_list <- lapply(seq_along(simulation_files), function(i) {
+    data <- read.csv(simulation_files[i], sep = "\t", dec = ".", header = TRUE, stringsAsFactors = FALSE, skip = 10)
+    data$simulation <- (i - 1) %% 10 + 1
+    data$type_inv <- inventory_types[ceiling(i / 10)]
+    return(data)
+})
+
+forceps <- do.call(rbind, forceps_list)
+colnames(forceps)
+nrow(forceps)
+forceps <- forceps %>% filter(simulation == 1)
+```
+
+# Inventaire initial
+
+## Load initial inventory data
+
+```{r}
+# Load initial inventory data
+inventory_files <- lapply(inventory_types, function(type) {
+  paste0("output/forceps_", type, ".inv")
+})
+
+# Import and combine inventory data
+inventory_list <- lapply(seq_along(inventory_files), function(i) {
+  data <- read.csv(inventory_files[[i]], sep = "\t", dec = ".", header = TRUE, stringsAsFactors = FALSE, skip = 5)
+  data$inv_type <- inventory_types[i]
+  return(data)
+})
+
+initial_inventory <- do.call(rbind, inventory_list)
+head(initial_inventory)
+```
+
+## Analyse
+
+colnames : 
+[1] "X.patchId"            "treeId"               "speciesId"
+[4] "age.years."           "dbh.cm."              "crownA1.0.1."
+[7] "dbhIncrement.cm."     "slowGrowthIndex.0.1." "inv_type"
+
+```{r}
+# barplot of tree nb per ha
+plot <- ggplot(initial_inventory, aes(x = inv_type, fill = factor(speciesId))) +
+  geom_bar() +
+  labs(title = "Nombre d'arbres par hectare",
+       x = "Type d'inventaire",
+       y = "Nombre d'arbres par hectare") +
+  # ajouter une barre qui s'appelle RETZ et qui aurait couleur(14,17,20,23) pour les valeurs c(25/20, 60/20, 3/20, 10/20)
+  geom_bar(data = data.frame(inv_type = "0_RETZ", speciesId = factor(c("14", "17", "20", "23"), levels = c(14, 17, 20, 23)), n = c(25/5, 60/5, 3/5, 10/5)), aes(y = n), stat = "identity") +
+  theme_minimal()
+plot
+```
+
+# fonction surface d'un disque à partir du diamètre
+
+
+```{r}
+G <- function(d) {
+  return(pi * (d / 2)^2)
+}
+
+# barplot surface terrière totale par type d'inventaire (ajouter aussi une barre par espèce)
+plot <- ggplot(initial_inventory, aes(x = inv_type, y = G(dbh.cm./100)*10, fill = factor(speciesId))) +
+  geom_bar(stat = "identity") +
+  labs(title = "Surface terrière totale par type d'inventaire",
+       x = "Type d'inventaire",
+       y = "Surface terrière (m2/ha)") +
+  theme_minimal()
+plot
+```
+
+# Evolution
+
+```{r}
+p1 <- ggplot(forceps %>% filter(!type_inv %in% c("min", "max")), aes(x = X.date, y = adultTreeBasalArea_m2_ha, color = type_inv)) +
+  geom_line() +
+  labs(title = "Surface terrière",
+       x = "Année",
+       y = "Surface terrière (m2/ha)") +
+  facet_wrap(~speciesShortName) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+p2 <- ggplot(forceps %>% filter(!type_inv %in% c("min", "max")), aes(x = X.date, y = adultTreeBiomass_t_ha, color = type_inv)) +
+  geom_line() +
+    facet_wrap(~speciesShortName) +
+  labs(title = "Biomasse",
+       x = "Année",
+       y = "Biomasse (t/ha)") +
+  theme_minimal()
+
+p1 + p2
+```
+
+Comment la biomasse initiale peut-elle être si différente entre les méthodes de calcul ?  
+Vérifier les inventaires initiaux, leur différences et leur proximité avec la surface terrière des données initiales (en vrai on peut en être assez loin avec ma méthode de calcul)  
+Présenter ma méthode de création des inventaires initiaux (et proposer des alternatives)  
+- 
+
+Intégrer la stochasticité : et ce que la différence induite par les inventaires est plus importante que la stochasiticité interne à Forceeps ?
