@@ -1,0 +1,400 @@
+---
+title: "Analyse de l'effet du paramètre : type de coupe"
+author: "Clémentine de Montgolfier"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+output: html_document
+---
+
+```{r options, include=FALSE}
+# set working dir for all chunks to ..
+knitr::opts_knit$set(root.dir = "../..")
+```
+
+```{r library}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(patchwork)
+```
+
+# Etude théorique de l'effet de param_type sur la probabilité d'être coupé et sur le score de coupe
+
+En récupérant les équatiuons de forceps
+
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+# Constants from your example
+cMin <- 0
+cMax <- 200
+ci_values <- c(30, 60, 100, 150, 200)  # different tree circumferences
+
+# Create a data frame of param_type and ci combinations
+param_types <- seq(0, 1, length.out = 5)
+
+df <- expand.grid(param_type = param_types, ci = ci_values)
+
+# Function to compute probaOfBeingCut
+df <- df %>%
+  rowwise() %>%
+  mutate(
+    # Compute randomness based on param_type
+    randomness = if (param_type <= 0.5) {
+      2 * param_type
+    } else {
+      2 - 2 * param_type
+    },
+    # circOfMaxProba
+    circOfMaxProba = param_type * (cMax - cMin) + cMin,
+    # initial rangeMax
+    rangeMax1 = circOfMaxProba - cMin + 1,
+    # alternative rangeMax
+    rangeMax2 = -circOfMaxProba + cMax + 1,
+    # rangeMax = max of both
+    rangeMax = max(rangeMax1, rangeMax2),
+    # assuming uniformProba = 0.5 (for visualization only)
+    uniformProba = 0.5,
+    probaOfBeingCut = 1 - abs(ci - circOfMaxProba) / rangeMax,
+    score = randomness * uniformProba + (1 - randomness) * probaOfBeingCut
+  ) %>%
+  ungroup()
+
+# Plot
+ggplot(df, aes(x = param_type, y = probaOfBeingCut)) +
+  geom_line(color = "steelblue", size = 1.2) +
+  facet_wrap(~ ci, scales = "free_y") +
+  labs(
+    title = "Evolution of probaOfBeingCut vs param_type",
+    x = "param_type (0 to 1)",
+    y = "probaOfBeingCut"
+  ) +
+  theme_minimal()
+
+# ProbaofbeingCut vs ci for different param_type
+ggplot(df, aes(x = ci, y = probaOfBeingCut, color = as.factor(param_type))) +
+  geom_line(size = 1.2) +
+  labs(
+    title = "ProbaOfBeingCut vs ci for different param_type",
+    x = "Tree Circumference (ci)",
+    y = "Probability of Being Cut",
+    color = "Param Type"
+  ) +
+  theme_minimal()
+
+# les plots pour le score
+ggplot(df, aes(x = param_type, y = score)) +
+  geom_line(color = "steelblue", size = 1.2) +
+  facet_wrap(~ ci, scales = "free_y") +
+  labs(
+    title = "Evolution of score vs param_type",
+    x = "param_type (0 to 1)",
+    y = "Score"
+  ) +
+  theme_minimal() +
+  ylim(0,1)
+
+ggplot(df, aes(x = ci, y = score, color = as.factor(param_type))) +
+  geom_line(size = 1.2) +
+  labs(
+    title = "Score vs ci for different param_type",
+    x = "Tree Circumference (ci)",
+    y = "Score",
+    color = "Param Type"
+  ) +
+  theme_minimal() +
+  ylim(0,1)
+```
+
+# Cas pratique, sur une simulation
+
+Foret de FSyl (Hetre), rotation 12 ans, surface terrière objective 15, surface terrière initiale de 34 m2/ha, 
+20 arbres, uniformément répartis entre 0 et 80 cm de diamètre
+
+```{r}
+read_forceps_complete_output <- function(path) {
+    # Lire les lignes du fichier
+    lines <- readLines(path)
+
+    # Trouver la ligne avec les noms de colonnes (celle qui commence par "#Trees")
+    header_line_index <- grep("^#Trees", lines)
+    if (length(header_line_index) == 0) {
+        stop("Ligne d'en-tête '#Trees' non trouvée.")
+    }
+
+    # La ligne suivante contient les noms de colonnes
+    column_line <- lines[header_line_index + 1]
+    # Supprimer le caractère '#' s'il est encore présent
+    column_line <- gsub("^#", "", column_line)
+    # Convertir en noms de colonnes
+    column_names <- unlist(strsplit(column_line, "\t"))
+
+    # Nettoyage des noms de colonnes
+    column_names <- gsub("\\)", "", column_names)
+    column_names <- gsub("\\(", ".", column_names)
+    column_names <- gsub(" ", "_", column_names)
+
+    # Lire les données à partir de la ligne suivante
+    data_start <- header_line_index + 2
+    data <- read.table(text = lines[data_start:length(lines)],
+                       header = FALSE, sep = "\t", stringsAsFactors = FALSE)
+    
+    # Assigner les noms de colonnes nettoyés
+    colnames(data) <- column_names
+
+    return(data)
+}
+```
+
+```{r}
+#path = "C:/Capsis4/data/forceps/clementine/Test_itinerary/output-cmd.txt/"
+#
+#data = data.frame()
+#t = 0
+#
+#for(type in seq(0,1,0.2)){    
+#    for (i in 1:10) {
+#        file = paste0(path, "retz_act.climate_unif.inv_simulation_", t+i, "complete.txt")
+#        one_rep = read_forceps_complete_output(file)
+#        one_rep$type = type
+#        one_rep$rep = i
+#        data = rbind(data, one_rep)
+#    }
+#    t = t + 10
+#}
+#
+#data <- data %>%
+#  group_by(rep, type, date, id) %>%
+#  mutate(cut = row_number() == 2) %>%
+#  ungroup()
+#
+## si cut == TRUE alors date == date +0.1
+#data <- data %>%
+#  mutate(date_init = date) %>%
+#  mutate(date = ifelse(cut, date + 0.1, date)) %>%
+#  mutate(cut = as.logical(cut))
+#
+## Ajouter la classe de diamètre à chaque arbre avec case_when
+#data <- data %>%
+#  mutate(
+#    classe_diam = case_when(
+#      dbh.cm < 7.5  ~ "R",
+#      dbh.cm < 17.5 ~ "I",
+#      dbh.cm < 27.5 ~ "P",
+#      dbh.cm < 47.5 ~ "M",
+#      dbh.cm < 67.5 ~ "G",
+#      dbh.cm >= 67.5 ~ "T",
+#      TRUE ~ NA_character_
+#    )
+#  )
+#
+## mettre les classes de diamètre dans l'ordre
+#data$classe_diam <- factor(data$classe_diam, 
+#                            levels = c("R", "I", "P", "M", "G", "T"),
+#                            ordered = TRUE)
+#
+#itinerary_data <- data
+#save(itinerary_data, file = "data/intinerary_data.RData")
+
+load("data/intinerary_data.RData")
+data <- itinerary_data
+```
+
+# voir la surface terrière moyenne et la densité de tiges
+
+```{r}
+#data %>%
+#    group_by(date, type, rep, speciesShortName) %>%
+#    summarise(
+#        meanBasalArea = sum(basalArea.m2)
+#    ) %>%
+#    ggplot(aes(x = date, y = meanBasalArea, color = speciesShortName)) +
+#    geom_line() +
+#    facet_grid(type ~ rep) +
+#    labs(
+#        title = "Surface terrière moyenne par espèce",
+#        x = "Espèce",
+#        y = "Surface terrière moyenne (m²)"
+#    )
+
+# en moyennant sur les rep
+data_mean <- data %>%
+  group_by(date, type, speciesShortName, rep) %>%
+  summarise(
+    meanBasalArea = sum(basalArea.m2),
+    density = n(),
+    .groups = 'drop'
+  ) %>%
+  group_by(date, type, speciesShortName) %>%
+  summarise(
+    meanBasalArea = mean(meanBasalArea),
+    medianBasalArea = median(meanBasalArea),
+    meandensity = mean(density),
+    mediandensity = mean(density),
+    .groups = 'drop'
+  )
+
+## Calculer la surface terrière totale par date et type
+#data_total <- data_mean %>%
+#  group_by(date, type) %>%
+#  summarise(
+#    meanBasalArea = sum(meanBasalArea),
+#    .groups = 'drop'
+#  ) %>%
+#  mutate(speciesShortName = "Total")
+#
+## Fusionner avec data_mean pour le plot
+data_plot <- bind_rows(data_mean) #, data_total)
+
+# plot
+ggplot(data_plot) +
+  geom_line(aes(x = date, y = meanBasalArea, color = speciesShortName, linetype = speciesShortName == "Total"), size = 1) +
+  scale_linetype_manual(values = c("FALSE" = "solid", "TRUE" = "dashed"), guide = "none") +
+  facet_wrap(~ type) +
+  labs(
+    title = "Surface terrière moyenne par espèce (et totale)",
+    x = "Date",
+    y = "Surface terrière moyenne (m²)"
+  ) +
+  theme(legend.text = element_text(size = 12), legend.title = element_text(size = 14))
+
+ggplot(data_mean) +
+    geom_line(aes(x = date, y = meandensity, color = speciesShortName)) +
+    facet_wrap(~ type) +
+    labs(
+        title = "Densité moyenne par espèce",
+        x = "Espèce",
+        y = "Densité moyenne par espèce"
+    ) +
+    # ecrire la légende en plus grand
+    theme(legend.text = element_text(size = 12), legend.title = element_text(size = 14))
+```
+
+# Coefficient de gini
+
+```{r}
+# First, calculate Gini per (date, type, rep)
+gini_data <- data %>%
+  group_by(date, type, rep) %>%
+  summarise(
+    gini = {
+      x <- dbh.cm
+      n <- length(x)
+      x_sorted <- sort(x)
+      G <- (2 * sum((1:n) * x_sorted) - (n + 1) * sum(x_sorted)) / (n * sum(x_sorted))
+      G
+    },
+    .groups = 'drop'
+  )
+
+# plot
+ggplot(gini_data %>%
+    group_by(date, type) %>% 
+    summarise(gini = mean(gini)), 
+    aes(x = date, y = gini, color = factor(type))) +
+  geom_line() +
+  labs(
+    title = "Coefficient de Gini par type",
+    x = "Date",
+    y = "Coefficient de Gini"
+  ) +
+  # color gradiant for type (but scale is not continuous)
+  scale_color_viridis_d(option = "plasma", begin = 0, end = 1) +
+  theme_minimal()
+```
+
+# Effet des coupes
+
+Quel diamètre moyen pour les arbres coupés ?
+
+Quand il y a une coupe
+
+```{r}
+cut_data <- data %>%
+  filter(date_init %in% seq(2020, 2100, by = 10)) %>%
+  group_by(date_init, type, rep, id) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  filter(n == 1) %>%
+  left_join(data, by = c("date_init", "type", "rep", "id")) %>%
+  group_by(date_init, type, speciesShortName) %>%
+  summarise(
+    dbh.cm = mean(dbh.cm, na.rm = TRUE)
+  )
+
+ggplot(cut_data, aes(x = date_init, y = dbh.cm, color = speciesShortName)) +
+    geom_point() +
+    facet_wrap(~type)
+```
+
+# Voir le classes de diamètres en 2021 et juste après la coupe
+
+```{r}
+data %>%
+  filter(date %in% c(2021, 2021.1)) %>%
+  group_by(date, type, speciesShortName, classe_diam, rep) %>%
+  summarise(
+    n = n(),
+    .groups = 'drop'
+  ) %>%
+  group_by(date, type, speciesShortName, classe_diam) %>%
+  summarise(
+    n = mean(n),
+    .groups = 'drop'
+  ) %>%
+  ggplot(aes(x = classe_diam, y = n, fill = factor(speciesShortName))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_grid(type~date) +
+  labs(
+    title = "Distribution des classes de diamètre par espèce",
+    x = "Classe de diamètre",
+    y = "Nombre d'arbres"
+  ) +
+  theme_minimal()
+
+data %>%
+  filter(date %in% c(2021, 2040, 2060, 2080, 2100), cut = TRUE) %>%
+  group_by(date, type, speciesShortName, classe_diam, rep) %>%
+  summarise(
+    n = n(),
+    .groups = 'drop'
+  ) %>%
+  group_by(date, type, speciesShortName, classe_diam) %>%
+  summarise(
+    n = mean(n),
+    .groups = 'drop'
+  ) %>%
+  ggplot(aes(x = classe_diam, y = n, fill = factor(speciesShortName))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_grid(type~date) +
+  labs(
+    title = "Distribution des classes de diamètre par espèce",
+    x = "Classe de diamètre",
+    y = "Nombre d'arbres"
+  ) +
+  theme_minimal()
+
+
+# en surface terrière
+data %>%
+  filter(date %in% c(2021, 2040, 2060, 2080, 2100), cut = TRUE) %>%
+  group_by(date, type, speciesShortName, classe_diam, rep) %>%
+  summarise(
+    meanBasalArea = sum(basalArea.m2),
+    .groups = 'drop'
+  ) %>%
+  group_by(date, type, speciesShortName, classe_diam) %>%
+  summarise(
+    meanBasalArea = mean(meanBasalArea),
+    .groups = 'drop'
+  ) %>%
+  ggplot(aes(x = classe_diam, y = meanBasalArea, fill = factor(speciesShortName))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_grid(type~date) +
+  labs(
+    title = "Surface terrière moyenne par classe de diamètre",
+    x = "Classe de diamètre",
+    y = "Surface terrière moyenne (m²)"
+  ) +
+  theme_minimal()
+```

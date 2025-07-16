@@ -1,0 +1,147 @@
+---
+title: "Pedo Analysis"
+author: "Clémentine de Montgolfier"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+output: html_document
+---
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(sf)
+library(patchwork)
+```
+
+Il y a un dossier ZOOM50_Pedo dans le dossier RETZ_FIF. Il contient un fichier shapefile (retz pedo) avec les données de pédologie actuelles et dans retzvtest2/results un autre fichier shapefile avec aussi des données de pédologie.  
+Je ne suis pas sure de la signification de ces données, ce sont peut-être des données de pédologie pour 2085 car dans le dossier ont trouve différentes projection pour 2085. Il y a aussi un fichier RU_fine_res.tif que je n'ai pas ouvert. Il va falloir définir quel est le fichier de pédologie à utiliser.  
+Je me suis seulemet intéréssée à la valeur de la RUM (réserve utile maximale dans ces données). D'ailleurs est ce que Réserve utile maximale c'est la bonne donnée pour la réserve utile ?
+
+```{r load data, echo = FALSE, message = FALSE, warning = FALSE}
+pedo_actual <- st_read("C:/Users/cdemontgolf/Desktop/RETZ_FIF/ZOOM50_Pedo/retz_pedo.shp")
+pedo_85 <- st_read("C:/Users/cdemontgolf/Desktop/RETZ_FIF/ZOOM50_Pedo/retzvtest2/resultats/shp_compatibilite.shp")
+
+# uniformise structire
+pedo_actual <- pedo_actual %>%
+  mutate(RUM = as.numeric(RUM)) %>%
+  select(geometry, RUM)
+pedo_85 <- pedo_85 %>% 
+  mutate(RUM = as.numeric(RUM)) %>%
+  select(geometry, RUM)
+
+pedo_actual <- st_transform(pedo_actual, st_crs(pedo_85))
+
+
+rum_tif <- raster::raster("C:/Users/cdemontgolf/Desktop/RETZ_FIF/ZOOM50_Pedo/retzvtest2/data/RU_fine_res.tif")
+rum_df <- raster::as.data.frame(rum_tif, xy = TRUE, na.rm = TRUE)
+names(rum_df)[3] <- "RUM"
+```
+
+# Ordre de grandeur de la RUM (réserve utile maximale)
+
+```{r, echo = FALSE, fig.width = 6, fig.height = 6, message = FALSE, warning = FALSE}
+ggplot(rum_df) +
+  geom_histogram(aes(x = RUM), bins = 30) +
+  scale_fill_distiller(palette = "Spectral") +
+  theme_minimal() +
+  labs(title = "RUM Histogram", x = "RUM (mm)", y = "Count")
+```
+
+# Carte de la RUM
+
+```{r RUM map, echo = FALSE, fig.width = 14, fig.height = 14, message = FALSE, warning = FALSE}
+p1 <- ggplot(pedo_actual) +
+  geom_sf(aes(fill = RUM), color = NA) +
+  # spectral
+  scale_fill_distiller(palette = "Spectral") +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank())+
+  theme(legend.position = "none") +
+  labs(title = "RUM actual Map", fill = "RUM")
+
+p2 <- ggplot(pedo_85) +
+  geom_sf(aes(fill = RUM), color = NA) +
+  # spectral
+  scale_fill_distiller(palette = "Spectral") +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank())+
+  theme(legend.position = "none") +
+  labs(title = "RUM 2085? Map", fill = "RUM")
+
+p3 <- ggplot(rum_df) +
+  geom_raster(aes(x = x, y = y, fill = RUM)) +
+  # spectral
+  scale_fill_distiller(palette = "Spectral") +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank())+
+  labs(title = "RUM raster Map", fill = "RUM")
+
+p1 + p2 + p3 +
+  plot_layout(ncol = 2)
+```
+
+Ca se ressemble un peu, on peu prendre l'actuelle (2012), le sol ne va pas non plus tant changer en plus, c'est pas comme si on pouvait faire évoluer le sol dans le model.  
+Les différences entre les deux shapefiles quand même :
+
+# différences entre les deux shapefiles
+
+```{r differences between maps, echo = FALSE, message = FALSE, warning = FALSE}
+# Calculate the differences between the two maps
+diff_map <- pedo_actual %>% select(geometry, RUM) %>%
+    st_join(pedo_85 %>% select(geometry, RUM),suffix = c("_actual", "_85")) %>%
+    mutate(RUM_diff = RUM_85 - RUM_actual)
+```
+
+```{r, echo = FALSE, fig.width = 12, fig.height = 12, message = FALSE, warning = FALSE}
+p2 <- ggplot(diff_map) +
+  geom_sf(aes(fill = sign(RUM_diff)*log(1 +abs(RUM_diff)))) +
+  # spectral
+  scale_fill_distiller(palette = "Spectral") +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank())+
+  labs(title = "log(RUM) differences", fill = "log(differences)")
+
+p1 <- ggplot(diff_map) + # %>% filter(RUM_diff > -100 & RUM_diff < 100)) +
+  geom_sf(aes(fill = RUM_diff)) +
+  # spectral
+  scale_fill_distiller(palette = "Spectral") +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank())+
+  labs(title = "RUM differences Map", fill = "differences")
+
+p3 <- ggplot(diff_map %>% filter(RUM_diff > -100 & RUM_diff < 100)) +
+  geom_sf(aes(fill = RUM_diff)) +
+  # spectral
+  scale_fill_distiller(palette = "Spectral") +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank())+
+  labs(title = "RUM (cropped -110 100) differences Map ", fill = "differences")
+
+p4 <- ggplot(diff_map) +
+  geom_histogram(aes(x = RUM_diff), bins = 30) +
+  scale_fill_distiller(palette = "Spectral") +
+  theme_minimal() +
+  labs(title = "RUM differences Histogram", x = "RUM difference", y = "Count")
+
+p1 + p2 + p4 + p3 +
+  plot_layout(ncol = 2)
+```
+
+Donc soit je prends le raste et je fais une moyenne sur chaque polygone mais je pense que le plus simple c'est d'utiliser le shapefile de 2012.  
+SI il y a des points qui n'existe pas, je vais pour l'instant ignorer la parcelle et je verrai plus tard si je peux mettre une valeur par défaut (moyenne sur la foret ou les points alentour).
