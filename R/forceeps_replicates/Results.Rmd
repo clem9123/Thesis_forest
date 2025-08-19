@@ -1,0 +1,1060 @@
+---
+title: "Determining Optimal Simulation Repetition for Forest Stand Modeling: A Replication Analysis of the FORCEPS Forest Growth Model"
+author: "Clémentine de Montgolfier"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+output: pdf_document
+---
+
+```{r options, include=FALSE}
+# set working dir for all chunks to ..
+knitr::opts_knit$set(root.dir = "../../")
+# Set global chunk options
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width = 8,
+  fig.height = 8
+)
+```
+
+```{r libraries-and-data, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(fs)
+library(gridExtra)
+library(grid)
+library(knitr)
+library(patchwork)
+load("output/repetition_mean.RData") # all_data
+```
+
+# Abstract
+
+Forest growth modeling is essential for sustainable forest management and climate change mitigation strategies. However, determining the optimal number of simulation repetitions required to achieve statistically reliable estimates is challenge in computational forest ecology. This study addresses this question for the FORCEPS (Forest Ecosystem Simulation Platform) forest growth model using data from the Retz forest in France.
+
+We conducted a comprehensive replication analysis using 5,000 individual FORCEPS simulations to determine the minimum number of simulations (n) required for stable estimates of key forest metrics including basal area, volume, biomass, productivity, and mortality. Our methodology employed a two-stage approach: first, we assessed the convergence of the coefficient of variation (CV) across different numbers of repetitions (m); second, we analyzed how CV and standardized error decrease with increasing simulation numbers (n).
+
+Results demonstrate that 10 repetitions (m = 10) are sufficient for coefficient of variation convergence across all tested forest metrics. For simulation numbers, our analysis reveals that 10 simulations (n = 10) provide adequate precision for most forest management applications. While 50 simulations offer superior precision, the marginal improvement does not justify the increased computational cost for our applications.
+
+# Introduction
+
+## Study Objectives
+
+This study aims to establish optimal simulation parameters for the FORCEEPS forest model through a comprehensive replication analysis. Specifically, we address two fundamental questions:
+
+1. **Repetition optimization (m)**: What is the minimum number of repetitions required to achieve stable coefficient of variation estimates?
+2. **Simulation optimization (n)**: How many individual simulations are needed to achieve acceptable precision in forest metric estimates?
+
+## Study Site and Model Description
+
+### Study Area
+
+The analysis focuses on the Retz forest (patch RETZ_00137_02), located in northern France.
+
+### FORCEPS Model
+
+FORCEEPS is a spatially explicit, individual-based forest model that simulates tree growth, competition, mortality, and regeneration processes. The model operates at the individual tree level and incorporates climate variables, soil characteristics, and species-specific physiological parameters. Some output variables include:
+
+- Total basal area (m2/ha)
+- Total volume (m3/ha)  
+- Total biomass (t/ha)
+- Annual productivity (m2/ha/year)
+- Tree mortality (individuals/ha/year)
+
+# Methods
+
+## Simulation Framework
+
+### Data Generation
+
+We conducted 5,000 independent FORCEPS simulations for the Retz forest patch, each spanning 80 years (2020-2100) with annual time steps. All simulations used identical initial forest conditions but different random seeds to capture stochastic variability in growth processes. The simulation protocol included:
+
+- **Patch area**: 1,000 hectares
+- **Simulation period**: 80 years (2020-2100)
+- **Climate scenario**: Current climate conditions (retz_act.climate)
+- **Management scenario**: 80_3_1_25_FSyl-80 (representing typical silvicultural practices)
+- **Species composition**: 9 potential species based on local forest inventory data
+
+### Statistical Analysis Framework
+
+Our analysis employed a two-stage approach to optimize both repetition numbers (m) and simulation numbers (n):
+
+**Stage 1: Repetition Analysis (m optimization)**
+For a fixed number of simulations (n), we assessed how the coefficient of variation (CV) stabilizes as the number of repetitions (m) increases. Each repetition represents an independent sampling of n simulations from our 5,000-simulation pool.
+
+**Stage 2: Simulation Analysis (n optimization)**  
+Using the optimal repetition number determined in Stage 1, we analyzed how CV and standardized error decrease as the number of simulations (n) increases.
+
+## Statistical Metrics
+
+### Coefficient of Variation (CV)
+
+The coefficient of variation was calculated as:
+
+$$CV = \frac{\sigma}{\mu}$$
+
+where sigma is the standard deviation and mu is the mean of the forest metric across repetitions.
+
+### Standardized Error
+
+The standardized error was calculated as:
+
+$$SE = \frac{1.833 \times \sigma}{\sqrt{n}}$$
+
+where 1.833 represents the 90% confidence interval multiplier for a t-distribution, sigma is the standard deviation, and n is the number of simulations.
+
+### Convergence Criteria
+
+We used the following convergence criteria:
+- **Error thresholds**: Standardized error < 5% and < 10% of mean values
+
+# Results
+
+## Repetition Optimization Analysis (Stage 1)
+
+The first stage of our analysis focused on determining the minimum number of repetitions (m) required for stable coefficient of variation estimates. We tested repetition numbers ranging from 5 to 400 across three different simulation group sizes (n = 2, 10, 50 i.e. each repetition is a mean of n simulations) for three key forest metrics.
+
+### Analytical Approach
+
+For each combination of simulation number (n) and repetition number (m), we:
+
+1. Randomly sampled n simulations from our 5,000-simulation pool
+2. Calculated mean values for each forest metric on the n simulations
+3. Repeated this process m times to generate m repetitions
+4. Computed the coefficient of variation across these m repetitions
+5. Assessed CV stability as m increased
+
+```{r repetition-analysis-function}
+m_analyse <- function(all_data, nb_simul = 10, variable = TotalBasalArea.m2.ha) {
+  library(dplyr)
+  library(ggplot2)
+  
+  # Create empty data frame to store final results
+  df <- data.frame()
+  
+  # List of all available simulation IDs
+  simulation <- 1:5000
+  
+  # Perform repetitions of random sampling
+  for (rep in 1:round(5000 / nb_simul, 0)) {
+    
+    # Initialize a temporary data frame to hold results for this repetition
+    oneRep <- data.frame()
+    
+    # Randomly sample 'nb_simul' unique simulation IDs without replacement
+    l <- sample(simulation, nb_simul, replace = FALSE)
+    
+    # Filter 'all_data' to include only rows with the sampled simulations
+    oneRep <- all_data[all_data$simulation %in% l, ] %>%
+      mutate(n = nb_simul) %>%
+      bind_rows(oneRep)
+    
+    # Remove used simulation IDs from the pool
+    simulation <- simulation[!simulation %in% l]
+    
+    # Add repetition number and bind to the global results data frame
+    df <- oneRep %>%
+      mutate(rep = rep) %>%
+      bind_rows(df)
+  }
+  
+  # Group repetitions into different sizes
+  df <- df %>%
+    mutate(m = case_when(
+      rep <= 5 ~ 5,
+      rep <= 15 ~ 10,
+      rep <= 65 ~ 50,
+      rep <= 165 ~ 100,
+      rep <= 315 ~ 150,
+      rep <= 515 ~ 200,
+      rep <= 765 ~ 250,
+      rep <= 1065 ~ 300,
+      rep <= 1415 ~ 350,
+      rep <= 1815 ~ 400,
+      TRUE ~ NA
+    )) %>%
+    filter(!is.na(m), rep < round(5000 / nb_simul, 0))
+  
+  # Compute mean of selected variable for each (rep, m, n, date)
+  df_mean <- df %>%
+    group_by(rep, m, n, date) %>%
+    summarise(mean_val = mean({{ variable }}, na.rm = TRUE), .groups = 'drop')
+  
+  # Plot the mean trajectories
+  p1 <- df_mean %>%
+    ggplot(aes(x = date, y = mean_val, color = factor(rep))) +
+    geom_line(alpha = 0.7) +
+    facet_wrap(~m, labeller = label_both) +
+    theme_minimal() +
+    theme(legend.position = "none") +
+    labs(
+      title = paste("Mean Trajectories for", deparse(substitute(variable))),
+      subtitle = paste("Simulation group size (n) =", nb_simul),
+      x = "Year",
+      y = paste(deparse(substitute(variable)), "(units)"),
+      caption = "Each line represents one repetition; facets show different repetition group sizes (m)"
+    )
+  
+  # Calculate coefficient of variation (CV) and error
+  df_cv <- df_mean %>%
+    group_by(m, date) %>%
+    summarise(
+      cv = sd(mean_val, na.rm = TRUE) / mean(mean_val, na.rm = TRUE),
+      erreur = 1.833 * sd(mean_val, na.rm = TRUE) / sqrt(n()),
+      .groups = 'drop'
+    ) %>%
+    group_by(m) %>%
+    summarise(
+      cv_max = max(cv, na.rm = TRUE), 
+      erreur_max = max(erreur, na.rm = TRUE), 
+      cv_mean = mean(cv, na.rm = TRUE),
+      erreur_mean = mean(erreur, na.rm = TRUE),
+      .groups = 'drop'
+    )
+  
+  p2 <- df_cv %>%
+    ggplot(aes(x = m, y = cv_max)) +
+    geom_line(color = "blue", size = 1.2) +
+    geom_point(color = "blue", size = 2) +
+    theme_minimal() +
+    labs(
+      title = "Coefficient of Variation Convergence",
+      subtitle = paste("Maximum CV across time for n =", nb_simul, "simulations"),
+      x = "Number of Repetitions (m)",
+      y = "Maximum Coefficient of Variation",
+      caption = "Lower values indicate better precision and stability"
+    ) +
+    theme(plot.title = element_text(size = 12, face = "bold"))
+  
+  return(list(
+    plot_mean = p1,
+    cv_table = df_cv,
+    plot_cv = p2
+  ))
+}
+```
+
+### Results for Total Basal Area
+
+#### Low Simulation Number (n = 2)
+
+```{r basal-area-2sim, fig.cap="Figure 1: Coefficient of variation analysis for total basal area with 2 simulations per repetition. The left panel shows individual repetition trajectories across different repetition group sizes. The right panel demonstrates CV convergence, with values stabilizing around 0.10 after 50 repetitions.", fig.height=6}
+# Run the simulation for 2 repetitions
+results <- m_analyse(all_data, nb_simul = 2, variable = totalBasalArea.m2.ha)
+
+# Create summary table
+cv_summary <- results$cv_table %>%
+  select(m, cv_max, erreur_max) %>%
+  mutate(
+    cv_max = round(cv_max, 4),
+    erreur_max = round(erreur_max, 2)
+  ) %>%
+  rename(
+    "Repetitions (m)" = m,
+    "Max CV" = cv_max,
+    "Max Error" = erreur_max
+  )
+
+# Convert table to tableGrob
+table_grob <- tableGrob(
+  cv_summary,
+  rows = NULL,
+  theme = ttheme_default(
+    core = list(fg_params = list(cex = 0.9)),
+    colhead = list(fg_params = list(cex = 0.9, fontface = "bold"))
+  )
+)
+
+# Display side by side
+grid.arrange(
+  results$plot_cv + ylim(0, 0.2) + 
+    theme(plot.title = element_text(size = 10)),
+  table_grob, 
+  ncol = 2,
+  widths = c(2, 1)
+)
+```
+
+**Analysis**: With only 2 simulations per repetition, the coefficient of variation remains relatively high (approximately 0.10) and requires approximately 50 repetitions for stabilization. The standard error is substantial (4 m2/ha), indicating significant uncertainty in estimates.
+
+#### Moderate Simulation Number (n = 10)
+
+```{r basal-area-10sim, fig.cap="Figure 2: Coefficient of variation analysis for total basal area with 10 simulations per repetition. CV values stabilize around 0.05 with good convergence achieved at 10 repetitions, representing an optimal balance between precision and computational efficiency.", fig.height=6}
+# Run the simulation for 10 repetitions
+results <- m_analyse(all_data, nb_simul = 10, variable = totalBasalArea.m2.ha)
+
+# Create summary table
+cv_summary <- results$cv_table %>%
+  select(m, cv_max, erreur_max) %>%
+  mutate(
+    cv_max = round(cv_max, 4),
+    erreur_max = round(erreur_max, 2)
+  ) %>%
+  rename(
+    "Repetitions (m)" = m,
+    "Max CV" = cv_max,
+    "Max Error" = erreur_max
+  )
+
+table_grob <- tableGrob(
+  cv_summary,
+  rows = NULL,
+  theme = ttheme_default(
+    core = list(fg_params = list(cex = 0.9)),
+    colhead = list(fg_params = list(cex = 0.9, fontface = "bold"))
+  )
+)
+
+grid.arrange(
+  results$plot_cv + ylim(0, 0.2) + 
+    theme(plot.title = element_text(size = 10)),
+  table_grob, 
+  ncol = 2,
+  widths = c(2, 1)
+)
+```
+
+**Analysis**: With 10 simulations per repetition, the coefficient of variation decreases substantially to approximately 0.05 and achieves stable convergence at just 5-10 repetitions. The standard error reduces to 1 m2/ha, representing a significant improvement in precision.
+
+#### High Simulation Number (n = 50)
+
+```{r basal-area-50sim, fig.cap="Figure 3: Coefficient of variation analysis for total basal area with 50 simulations per repetition. CV values are very low (approximately 0.02) and demonstrate excellent stability from the first repetition group, indicating high precision with minimal uncertainty.", fig.height=6}
+# Run the simulation for 50 repetitions
+results <- m_analyse(all_data, nb_simul = 50, variable = totalBasalArea.m2.ha)
+
+cv_summary <- results$cv_table %>%
+  select(m, cv_max, erreur_max) %>%
+  mutate(
+    cv_max = round(cv_max, 4),
+    erreur_max = round(erreur_max, 2)
+  ) %>%
+  rename(
+    "Repetitions (m)" = m,
+    "Max CV" = cv_max,
+    "Max Error" = erreur_max
+  )
+
+table_grob <- tableGrob(
+  cv_summary,
+  rows = NULL,
+  theme = ttheme_default(
+    core = list(fg_params = list(cex = 0.9)),
+    colhead = list(fg_params = list(cex = 0.9, fontface = "bold"))
+  )
+)
+
+grid.arrange(
+  results$plot_cv + ylim(0, 0.2) + 
+    theme(plot.title = element_text(size = 10)),
+  table_grob, 
+  ncol = 2,
+  widths = c(2, 1)
+)
+```
+
+**Analysis**: With 50 simulations per repetition, the coefficient of variation achieves excellent stability (0.02) immediately, with minimal variation across repetition groups. The standard error is very low (0.2 m2/ha), indicating highly precise estimates.
+
+### Results for Total Volume
+
+#### Low Simulation Number (n = 2)
+
+```{r volume-2sim, fig.cap="Figure 4: Coefficient of variation analysis for total volume with 2 simulations per repetition. Similar patterns to basal area are observed, with CV values requiring substantial repetitions for convergence.", fig.height=6}
+results <- m_analyse(all_data, nb_simul = 2, variable = totalVolume.m3.ha)
+
+cv_summary <- results$cv_table %>%
+  select(m, cv_max, erreur_max) %>%
+  mutate(
+    cv_max = round(cv_max, 4),
+    erreur_max = round(erreur_max, 1)
+  ) %>%
+  rename(
+    "Repetitions (m)" = m,
+    "Max CV" = cv_max,
+    "Max Error" = erreur_max
+  )
+
+table_grob <- tableGrob(cv_summary, rows = NULL, 
+                       theme = ttheme_default(
+                         core = list(fg_params = list(cex = 0.9)),
+                         colhead = list(fg_params = list(cex = 0.9, fontface = "bold"))
+                       ))
+
+grid.arrange(results$plot_cv + ylim(0, 0.2), table_grob, ncol = 2, widths = c(2, 1))
+```
+
+#### Moderate Simulation Number (n = 10)
+
+```{r volume-10sim, fig.cap="Figure 5: Coefficient of variation analysis for total volume with 10 simulations per repetition. Convergence patterns mirror those observed for basal area, confirming the robustness of our findings across forest metrics.", fig.height=6}
+results <- m_analyse(all_data, nb_simul = 10, variable = totalVolume.m3.ha)
+
+cv_summary <- results$cv_table %>%
+  select(m, cv_max, erreur_max) %>%
+  mutate(
+    cv_max = round(cv_max, 4),
+    erreur_max = round(erreur_max, 1)
+  ) %>%
+  rename(
+    "Repetitions (m)" = m,
+    "Max CV" = cv_max,
+    "Max Error" = erreur_max
+  )
+
+table_grob <- tableGrob(cv_summary, rows = NULL,
+                       theme = ttheme_default(
+                         core = list(fg_params = list(cex = 0.9)),
+                         colhead = list(fg_params = list(cex = 0.9, fontface = "bold"))
+                       ))
+
+grid.arrange(results$plot_cv + ylim(0, 0.2), table_grob, ncol = 2, widths = c(2, 1))
+```
+
+### Results for Total Biomass
+
+#### Low Simulation Number (n = 2)
+
+```{r biomass-2sim, fig.cap="Figure 6: Coefficient of variation analysis for total biomass with 2 simulations per repetition. Biomass estimates show similar convergence patterns to other forest metrics, validating our methodological approach.", fig.height=6}
+results <- m_analyse(all_data, nb_simul = 2, variable = totalBiomass.t.ha)
+
+cv_summary <- results$cv_table %>%
+  select(m, cv_max, erreur_max) %>%
+  mutate(
+    cv_max = round(cv_max, 4),
+    erreur_max = round(erreur_max, 1)
+  ) %>%
+  rename(
+    "Repetitions (m)" = m,
+    "Max CV" = cv_max,
+    "Max Error" = erreur_max
+  )
+
+table_grob <- tableGrob(cv_summary, rows = NULL,
+                       theme = ttheme_default(
+                         core = list(fg_params = list(cex = 0.9)),
+                         colhead = list(fg_params = list(cex = 0.9, fontface = "bold"))
+                       ))
+
+grid.arrange(results$plot_cv + ylim(0, 0.2), table_grob, ncol = 2, widths = c(2, 1))
+```
+
+#### Moderate Simulation Number (n = 10)
+
+```{r biomass-10sim, fig.cap="Figure 7: Coefficient of variation analysis for total biomass with 10 simulations per repetition. Results consistently support the conclusion that 10 repetitions provide adequate convergence for forest modeling applications.", fig.height=6}
+results <- m_analyse(all_data, nb_simul = 10, variable = totalBiomass.t.ha)
+
+cv_summary <- results$cv_table %>%
+  select(m, cv_max, erreur_max) %>%
+  mutate(
+    cv_max = round(cv_max, 4),
+    erreur_max = round(erreur_max, 1)
+  ) %>%
+  rename(
+    "Repetitions (m)" = m,
+    "Max CV" = cv_max,
+    "Max Error" = erreur_max
+  )
+
+table_grob <- tableGrob(cv_summary, rows = NULL,
+                       theme = ttheme_default(
+                         core = list(fg_params = list(cex = 0.9)),
+                         colhead = list(fg_params = list(cex = 0.9, fontface = "bold"))
+                       ))
+
+grid.arrange(results$plot_cv + ylim(0, 0.2), table_grob, ncol = 2, widths = c(2, 1))
+```
+
+### Stage 1 Conclusions
+
+The analysis demonstrates that while 50 repetitions provide superior precision from the outset, 10 repetitions achieve acceptable precision (if we use the mean of at least 10 simulations), establishing our framework for Stage 2 analysis.
+
+## Simulation Optimization Analysis (Stage 2)
+
+Having established that 10 repetitions provide optimal convergence (m = 10), we now focus on determining the minimum number of simulations (n) required to achieve acceptable precision levels. This analysis examines how coefficient of variation and standardized error decrease as simulation numbers increase from 1 to 150.
+
+### Analytical Framework
+
+Using m = 10 repetitions, we tested simulation group sizes ranging from 1 to 150 simulations. For each simulation group size, we:
+
+1. Generated 10 independent repetitions, each containing n simulations
+2. Calculated mean forest metrics for each repetition
+3. Computed coefficient of variation and standardized error across repetitions
+4. Assessed precision improvement with increasing simulation numbers
+
+```{r simulation-optimization-function}
+n_analyses <- function(all_data, variable = TotalBasalArea.m2.ha, 
+                      groupes = c(1, 5, 10, 20, 30, 50, 75, 100, 150), 
+                      nb_rep = 10) {
+  library(dplyr)
+  library(ggplot2)
+  
+  df <- data.frame()
+  simulation <- 1:5000
+  
+  # Loop over repetitions
+  for (m in 1:nb_rep) {
+    oneRep <- data.frame()
+    for (i in seq_along(groupes)) {
+      l <- sample(simulation, groupes[i], replace = FALSE)
+      oneRep <- all_data[all_data$simulation %in% l, ] %>%
+        mutate(n = groupes[i]) %>%
+        bind_rows(oneRep)
+      simulation <- setdiff(simulation, l)
+    }
+    df <- oneRep %>%
+      mutate(m = m) %>%
+      bind_rows(df)
+  }
+  
+  # Calculate means by (m, n, date)
+  df_mean <- df %>%
+    group_by(m, n, date) %>%
+    summarise(mean_val = mean({{ variable }}, na.rm = TRUE), .groups = "drop")
+  
+  # Plot mean trajectories
+  plot_mean <- df_mean %>%
+    ggplot(aes(x = date, y = mean_val, color = factor(m))) +
+    geom_line(alpha = 0.8) +
+    facet_wrap(~n, labeller = label_both) +
+    theme_minimal() +
+    theme(legend.position = "none") +
+    labs(
+      title = paste("Mean Trajectories for", deparse(substitute(variable))),
+      subtitle = "Each line represents one repetition (m = 10 total)",
+      x = "Year",
+      y = paste(deparse(substitute(variable)), "(units)"),
+      caption = "Facets show different simulation group sizes (n)"
+    )
+  
+  # Calculate coefficient of variation and error
+  df_cv <- df_mean %>%
+    group_by(n, date) %>%
+    summarise(
+      cv = sd(mean_val, na.rm = TRUE) / mean(mean_val, na.rm = TRUE),
+      error = 1.833 * sd(mean_val, na.rm = TRUE) / sqrt(n()),
+      .groups = 'drop'
+    ) %>%
+    group_by(n) %>%
+    summarise(
+      cv_max = max(cv, na.rm = TRUE),
+      error_max = max(error, na.rm = TRUE),
+      cv_mean = mean(cv, na.rm = TRUE),
+      error_mean = mean(error, na.rm = TRUE),
+      .groups = 'drop'
+    )
+  
+  # CV and Error plots
+  plot_cv <- df_cv %>%
+    ggplot(aes(x = n, y = cv_max)) +
+    geom_line(color = "blue", size = 1.2) +
+    geom_point(color = "blue", size = 2) +
+    theme_minimal() +
+    ylim(0, 0.2) +
+    labs(
+      title = "Coefficient of Variation vs. Simulation Number",
+      x = "Number of Simulations (n)",
+      y = "Maximum CV",
+      caption = "Lower values indicate better precision"
+    )
+  
+  plot_error <- df_cv %>%
+    ggplot(aes(x = n, y = error_max)) +
+    geom_line(color = "red", size = 1.2) +
+    geom_point(color = "red", size = 2) +
+    theme_minimal() +
+    labs(
+      title = "Standardized Error vs. Simulation Number",
+      x = "Number of Simulations (n)",
+      y = "Maximum Standardized Error",
+      caption = "Error represents 90% confidence interval bounds"
+    )
+  
+  return(list(
+    plot_mean = plot_mean,
+    plot_cv = plot_cv,
+    plot_error = plot_error,
+    summary_table = df_cv
+  ))
+}
+```
+
+### Results for Total Basal Area
+
+```{r basal-area-simulation-analysis, fig.cap="Figure 8: Simulation optimization analysis for total basal area. Left panel shows mean trajectories across different simulation group sizes. Center panel demonstrates CV reduction with increasing simulation numbers. Right panel shows standardized error convergence, with significant improvements observed up to n=20.", fig.width=15, fig.height=5}
+# Execute analysis for totalBasalArea.m2.ha
+results <- n_analyses(all_data, variable = totalBasalArea.m2.ha)
+
+# Arrange plots side by side
+grid.arrange(results$plot_mean, results$plot_cv, results$plot_error, ncol = 3)
+
+# Display summary statistics
+kable(results$summary_table %>%
+  mutate(
+    cv_max = round(cv_max, 4),
+    error_max = round(error_max, 2),
+    cv_mean = round(cv_mean, 4),
+    error_mean = round(error_mean, 2)
+  ) %>%
+  rename(
+    "Simulations (n)" = n,
+    "Max CV" = cv_max,
+    "Max Error" = error_max,
+    "Mean CV" = cv_mean,
+    "Mean Error" = error_mean
+  ),
+  caption = "Table 1: Precision metrics for total basal area across simulation numbers",
+  booktabs = TRUE
+)
+```
+
+### Results for Total Volume
+
+```{r volume-simulation-analysis, fig.cap="Figure 9: Simulation optimization analysis for total volume. Volume estimates show similar convergence patterns to basal area, with optimal precision achieved around n=10-20 simulations.", fig.width=15, fig.height=5}
+# Execute analysis for totalVolume.m3.ha
+results <- n_analyses(all_data, variable = totalVolume.m3.ha)
+
+# Arrange plots side by side
+grid.arrange(results$plot_mean, results$plot_cv, results$plot_error, ncol = 3)
+
+# Display summary statistics
+kable(results$summary_table %>%
+  mutate(
+    cv_max = round(cv_max, 4),
+    error_max = round(error_max, 1),
+    cv_mean = round(cv_mean, 4),
+    error_mean = round(error_mean, 1)
+  ) %>%
+  rename(
+    "Simulations (n)" = n,
+    "Max CV" = cv_max,
+    "Max Error" = error_max,
+    "Mean CV" = cv_mean,
+    "Mean Error" = error_mean
+  ),
+  caption = "Table 2: Precision metrics for total volume across simulation numbers",
+  booktabs = TRUE
+)
+```
+
+### Results for Total Biomass
+
+```{r biomass-simulation-analysis, fig.cap="Figure 10: Simulation optimization analysis for total biomass. Biomass estimates demonstrate consistent convergence behavior, supporting the robustness of our optimization approach across multiple forest metrics.", fig.width=15, fig.height=5}
+# Execute analysis for totalBiomass.t.ha
+results <- n_analyses(all_data, variable = totalBiomass.t.ha)
+
+# Arrange plots side by side
+grid.arrange(results$plot_mean, results$plot_cv, results$plot_error, ncol = 3)
+
+# Display summary statistics  
+kable(results$summary_table %>%
+  mutate(
+    cv_max = round(cv_max, 4),
+    error_max = round(error_max, 1),
+    cv_mean = round(cv_mean, 4),
+    error_mean = round(error_mean, 1)
+  ) %>%
+  rename(
+    "Simulations (n)" = n,
+    "Max CV" = cv_max,
+    "Max Error" = error_max,
+    "Mean CV" = cv_mean,
+    "Mean Error" = error_mean
+  ),
+  caption = "Table 3: Precision metrics for total biomass across simulation numbers",
+  booktabs = TRUE
+)
+```
+
+## Analysis of Productivity Metrics
+
+Working on productivity analysis to:
+- Obtain more temporally stable values (less variation, making error less date-dependent)
+- Reduce dependence on initial values (strong divergence in early years affects other accumulated metrics)
+
+### Species-Level Productivity Analysis
+
+```{r productivity-data-loading}
+load("output/repetition_productivityScene.RData") # global_df
+```
+
+```{r species-productivity-analysis, message=FALSE, warning=FALSE, fig.width=12, fig.height=16, fig.cap="Figure 11: Species-level productivity analysis showing coefficient of variation and error patterns across different simulation group sizes for individual tree species.", fig.height=10}
+global_df_sp <- global_df %>%
+  filter(speciesShortName != "Tot")
+
+# Plot mean trajectories
+plot_mean <- global_df_sp %>%
+  group_by(date, speciesShortName, n, m) %>%
+  summarise(mean_val = mean(mean_val, na.rm = TRUE), .groups = 'drop') %>%
+  ggplot(aes(x = date, y = mean_val, color = factor(m))) +
+  geom_line(alpha = 0.7) +
+  facet_grid(speciesShortName ~ n, labeller = label_both) +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(size = 8)
+  ) +
+  labs(
+    title = "Mean Productivity Trajectories by Species",
+    subtitle = "Adult basal area production (m2/ha/year)",
+    x = "Year",
+    y = "Adult Productivity (m2/ha/year)",
+    caption = "Rows = species, Columns = simulation group size (n)"
+  )
+
+# Calculate coefficient of variation and error
+df_cv <- global_df_sp %>%
+  group_by(n, date, speciesShortName) %>%
+  summarise(
+    sd_val = sd(mean_val, na.rm = TRUE),
+    cv = sd(mean_val, na.rm = TRUE) / mean(mean_val, na.rm = TRUE),
+    error = 1.833 * sd(mean_val, na.rm = TRUE) / sqrt(n()),
+    .groups = 'drop'
+  ) %>%
+  group_by(n) %>%
+  summarise(
+    sd_max = max(sd_val, na.rm = TRUE),
+    cv_max = max(cv, na.rm = TRUE),
+    error_max = max(error, na.rm = TRUE),
+    .groups = 'drop'
+  )
+
+# CV and Error plots
+plot_cv <- df_cv %>%
+  ggplot(aes(x = n, y = cv_max)) +
+  geom_line(color = "blue", size = 1.2) +
+  geom_point(color = "blue", size = 2) +
+  theme_minimal() +
+  labs(
+    title = "Maximum CV Across Species",
+    x = "Number of Simulations (n)",
+    y = "Maximum CV",
+    caption = "CV calculated across species and time"
+  )
+
+plot_error <- df_cv %>%
+  ggplot(aes(x = n, y = error_max)) +
+  geom_line(color = "red", size = 1.2) +
+  geom_point(color = "red", size = 2) +
+  theme_minimal() +
+  labs(
+    title = "Maximum Standardized Error",
+    x = "Number of Simulations (n)",
+    y = "Maximum Error",
+    caption = "Error represents 90% confidence bounds"
+  )
+
+plot_mean / (plot_cv + plot_error) +
+  plot_layout(heights = c(3, 1)) +
+  plot_annotation(
+    title = "Species-Level Productivity Analysis",
+    theme = theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
+  )
+```
+
+**Species-Level Analysis Notes**: Coefficient of variation is unreliable for some species because certain values are zero (making the mean null and CV infinite). Additionally, some species have very low productivity, resulting in very high coefficient of variation values.
+
+### Total Productivity Analysis
+
+```{r total-productivity-analysis, message=FALSE, warning=FALSE, fig.width=12, fig.height=8, fig.cap="Figure 12: Total productivity analysis across all species, showing convergence patterns for aggregated productivity metrics with precision thresholds at 5% and 10% error levels.", fig.height=8}
+global_df_tot <- global_df %>%
+  filter(speciesShortName == "Tot")
+
+# Calculate threshold values at 5% and 10% of mean
+threshold_5pct <- 0.05 * mean(global_df_tot$mean_val, na.rm = TRUE)
+threshold_10pct <- 0.1 * mean(global_df_tot$mean_val, na.rm = TRUE)
+
+# Plot mean trajectories
+plot_mean_tot <- global_df_tot %>%
+  group_by(date, n, m) %>%
+  summarise(mean_val = mean(mean_val, na.rm = TRUE), .groups = 'drop') %>%
+  ggplot(aes(x = date, y = mean_val, color = factor(m))) +
+  geom_line(alpha = 0.8) +
+  facet_wrap(~n, labeller = label_both) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(
+    title = "Total Productivity Trajectories",
+    subtitle = "Aggregate adult basal area production across all species",
+    x = "Year",
+    y = "Total Adult Productivity (m2/ha/year)",
+    caption = "Each line represents one repetition (m = 10 total)"
+  )
+
+# Calculate coefficient of variation and error
+df_cv_tot <- global_df_tot %>%
+  group_by(n, date) %>%
+  summarise(
+    sd_val = sd(mean_val, na.rm = TRUE),
+    cv = sd(mean_val, na.rm = TRUE) / mean(mean_val, na.rm = TRUE),
+    error = 1.833 * sd(mean_val, na.rm = TRUE) / sqrt(n()),
+    .groups = 'drop'
+  ) %>%
+  group_by(n) %>%
+  summarise(
+    sd_max = max(sd_val, na.rm = TRUE),
+    cv_max = max(cv, na.rm = TRUE),
+    error_max = max(error, na.rm = TRUE),
+    .groups = 'drop'
+  )
+
+# CV and Error plots with thresholds
+plot_cv_tot <- df_cv_tot %>%
+  ggplot(aes(x = n, y = cv_max)) +
+  geom_line(color = "blue", size = 1.2) +
+  geom_point(color = "blue", size = 2) +
+  theme_minimal() +
+  labs(
+    title = "Coefficient of Variation (Total)",
+    x = "Number of Simulations (n)",
+    y = "Maximum CV"
+  )
+
+plot_error_tot <- df_cv_tot %>%
+  ggplot(aes(x = n, y = error_max)) +
+  geom_line(color = "red", size = 1.2) +
+  geom_point(color = "red", size = 2) +
+  theme_minimal() +
+  labs(
+    title = "Standardized Error (Total)",
+    x = "Number of Simulations (n)",
+    y = "Maximum Error"
+  ) +
+  geom_hline(yintercept = threshold_5pct, linetype = "dashed", color = "red", alpha = 0.7) +
+  geom_hline(yintercept = threshold_10pct, linetype = "dashed", color = "blue", alpha = 0.7) +
+  annotate("text", x = max(df_cv_tot$n) * 0.8, y = threshold_5pct, 
+           label = "5% threshold", color = "red", vjust = -0.5, size = 3) +
+  annotate("text", x = max(df_cv_tot$n) * 0.8, y = threshold_10pct, 
+           label = "10% threshold", color = "blue", vjust = 1.5, size = 3)
+
+# Find intersection values with thresholds
+intersect_5pct <- df_cv_tot %>%
+  filter(error_max <= threshold_5pct) %>%
+  summarise(n_min = min(n, na.rm = TRUE)) %>%
+  pull(n_min)
+
+intersect_10pct <- df_cv_tot %>%
+  filter(error_max <= threshold_10pct) %>%
+  summarise(n_min = min(n, na.rm = TRUE)) %>%
+  pull(n_min)
+
+plot_mean_tot / (plot_cv_tot + plot_error_tot) +
+  plot_layout(heights = c(2, 1)) +
+  plot_annotation(
+    title = "Total Productivity Analysis",
+    subtitle = paste("Precision thresholds: n =", intersect_10pct, "for 10% error, n =", intersect_5pct, "for 5% error"),
+    theme = theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
+  )
+```
+
+**Threshold Analysis Results**: 
+- For 5% error threshold: **50 simulations** required  
+- For 10% error threshold: **10 simulations** required
+
+### Mortality Analysis
+
+Analyzing tree mortality (deadNumber_ha) from the productivity scene dataset.
+
+```{r mortality-analysis, message=FALSE, warning=FALSE, fig.width=12, fig.height=8, fig.cap="Figure 13: Tree mortality analysis showing the number of simulations required to achieve stable estimates of forest mortality rates with defined precision thresholds.", fig.height=8}
+global_df_mortality <- global_df %>%
+  filter(speciesShortName == "Tot")
+
+# Calculate threshold values for mortality
+threshold_mort_5pct <- 0.05 * mean(global_df_mortality$dead_total, na.rm = TRUE)
+threshold_mort_10pct <- 0.1 * mean(global_df_mortality$dead_total, na.rm = TRUE)
+
+# Plot mean mortality trajectories
+plot_mean_mortality <- global_df_mortality %>%
+  group_by(date, n, m) %>%
+  summarise(dead_total = mean(dead_total, na.rm = TRUE), .groups = 'drop') %>%
+  ggplot(aes(x = date, y = dead_total, color = factor(m))) +
+  geom_line(alpha = 0.8) +
+  facet_wrap(~n, labeller = label_both) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(
+    title = "Tree Mortality Trajectories",
+    subtitle = "Dead trees per hectare across simulation scenarios",
+    x = "Year",
+    y = "Dead Trees (individuals/ha)",
+    caption = "Each line represents one repetition (m = 10 total)"
+  )
+
+# Calculate coefficient of variation and error for mortality
+df_cv_mortality <- global_df_mortality %>%
+  group_by(n, date) %>%
+  summarise(
+    sd_val = sd(dead_total, na.rm = TRUE),
+    cv = sd(dead_total, na.rm = TRUE) / mean(dead_total, na.rm = TRUE),
+    error = 1.833 * sd(dead_total, na.rm = TRUE) / sqrt(n()),
+    .groups = 'drop'
+  ) %>%
+  group_by(n) %>%
+  summarise(
+    sd_max = max(sd_val, na.rm = TRUE),
+    cv_max = max(cv, na.rm = TRUE),
+    error_max = max(error, na.rm = TRUE),
+    .groups = 'drop'
+  )
+
+# CV and Error plots for mortality
+plot_cv_mortality <- df_cv_mortality %>%
+  ggplot(aes(x = n, y = cv_max)) +
+  geom_line(color = "darkgreen", size = 1.2) +
+  geom_point(color = "darkgreen", size = 2) +
+  theme_minimal() +
+  labs(
+    title = "CV for Tree Mortality",
+    x = "Number of Simulations (n)",
+    y = "Maximum CV"
+  )
+
+plot_error_mortality <- df_cv_mortality %>%
+  ggplot(aes(x = n, y = error_max)) +
+  geom_line(color = "darkred", size = 1.2) +
+  geom_point(color = "darkred", size = 2) +
+  theme_minimal() +
+  labs(
+    title = "Error for Tree Mortality",
+    x = "Number of Simulations (n)",
+    y = "Maximum Error"
+  ) +
+  geom_hline(yintercept = threshold_mort_5pct, linetype = "dashed", color = "red", alpha = 0.7) +
+  geom_hline(yintercept = threshold_mort_10pct, linetype = "dashed", color = "blue", alpha = 0.7) +
+  annotate("text", x = max(df_cv_mortality$n) * 0.8, y = threshold_mort_5pct, 
+           label = "5% threshold", color = "red", vjust = -0.5, size = 3) +
+  annotate("text", x = max(df_cv_mortality$n) * 0.8, y = threshold_mort_10pct, 
+           label = "10% threshold", color = "blue", vjust = 1.5, size = 3)
+
+# Find intersection values for mortality
+intersect_mort_5pct <- df_cv_mortality %>%
+  filter(error_max <= threshold_mort_5pct) %>%
+  summarise(n_min = min(n, na.rm = TRUE)) %>%
+  pull(n_min)
+
+intersect_mort_10pct <- df_cv_mortality %>%
+  filter(error_max <= threshold_mort_10pct) %>%
+  summarise(n_min = min(n, na.rm = TRUE)) %>%
+  pull(n_min)
+
+plot_mean_mortality / (plot_cv_mortality + plot_error_mortality) +
+  plot_layout(heights = c(2, 1)) +
+  plot_annotation(
+    title = "Tree Mortality Analysis",
+    subtitle = paste("Precision requirements: n =", intersect_mort_10pct, "for 10% error, n =", intersect_mort_5pct, "for 5% error"),
+    theme = theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
+  )
+```
+
+**Mortality Analysis Results**:
+- n = **10** for 10.5% error
+- n = **20** for 10% error  
+- n = **50** for 5% error
+
+
+## Precision Gained by Increasing Repetition Numbers
+
+To further validate our findings, we conducted an additional analysis examining precision improvements with varying repetition numbers while maintaining fixed simulation group sizes.
+
+```{r precision-repetition-analysis, message=FALSE, warning=FALSE}
+# Create groups of repetitions
+groupes <- c(1, 5, 10, 20, 30, 50, 75, 100, 150)
+
+df <- data.frame()
+simulation <- 1:5000
+
+for(rep in 1:10){
+    oneRep <- data.frame()
+    for(i in 1:length(groupes)){
+        l <- sample(simulation, groupes[i], replace = FALSE)
+        oneRep <- all_data[all_data$simulation %in% l,] %>%
+            mutate(n = groupes[i]) %>%
+            bind_rows(oneRep)
+        simulation <- simulation[!simulation %in% l]
+    }
+    df <- oneRep %>%
+        mutate(rep = rep) %>%
+        bind_rows(df)
+}
+
+# Calculate means for stability analysis
+df_mean <- df %>%
+    group_by(rep, n, date) %>%
+    summarise(totalBasalArea = mean(totalBasalArea.m2.ha, na.rm = TRUE), .groups = 'drop')
+
+# Calculate temporal stability (epsilon)
+df_epsilon <- df_mean %>%
+    arrange(rep, n, date) %>%
+    group_by(rep, n) %>%
+    summarise(
+        epsilon = sum(abs(totalBasalArea - lag(totalBasalArea, default = first(totalBasalArea))), na.rm = TRUE) / 82,
+        .groups = 'drop'
+    )
+
+# Create stability plot
+plot_stability <- ggplot(df_epsilon) +
+    geom_line(aes(x = n, y = epsilon, color = factor(rep)), alpha = 0.7) +
+    geom_line(
+        data = df_epsilon %>% group_by(n) %>% summarise(epsilon = mean(epsilon), .groups = 'drop'),
+        aes(x = n, y = epsilon), 
+        color = "black", 
+        size = 1.5
+    ) +
+    geom_hline(yintercept = 0.2, linetype = "dashed", color = "red", alpha = 0.7) +
+    theme_minimal() +
+    labs(
+        title = "Temporal Stability Analysis",
+        subtitle = "Lower epsilon values indicate more stable trajectories",
+        x = "Number of Simulations (n)",
+        y = "Epsilon (Temporal Variation Index)",
+        color = "Repetition",
+        caption = "Red dashed line represents acceptable stability threshold (0.2)"
+    ) +
+    theme(legend.position = "none")
+
+# Calculate coefficient of variation across repetitions
+df_cv_analysis <- df_mean %>%
+    group_by(n, date) %>%
+    summarise(
+        cv = sd(totalBasalArea, na.rm = TRUE) / mean(totalBasalArea, na.rm = TRUE),
+        .groups = 'drop'
+    ) %>%
+    group_by(n) %>%
+    summarise(
+        cv_mean = mean(cv, na.rm = TRUE),
+        .groups = 'drop'
+    )
+
+plot_cv_analysis <- ggplot(df_cv_analysis) +
+    geom_line(aes(x = n, y = cv_mean), color = "blue", size = 1.5) +
+    geom_point(aes(x = n, y = cv_mean), color = "blue", size = 2) +
+    theme_minimal() +
+    labs(
+        title = "Mean Coefficient of Variation",
+        subtitle = "CV averaged across the 80-year simulation period",
+        x = "Number of Simulations (n)",
+        y = "Mean CV",
+        caption = "Lower values indicate better precision"
+    )
+
+grid.arrange(plot_stability, plot_cv_analysis, ncol = 2)
+```
+
+# Discussion
+
+Our analysis supports different simulation parameters based on application requirements:
+
+- 10% error tolerance : n = 10, m = 10
+- 5% error tolerance : n = 50, m = 10
+
+## Methodological Considerations
+
+### Strengths
+
+1. **Comprehensive scope**: Analysis covered multiple forest metrics across 80-year simulations
+2. **Large sample size**: 5,000 independent simulations provide robust statistical foundation
+3. **Systematic approach**: Two-stage optimization ensures both repetition and simulation parameters are optimized
+4. **Practical focus**: Results directly applicable to operational forest modeling
+
+### Limitations
+
+1. **Single forest type**: Results based solely on Retz forest temperate deciduous ecosystem
+2. **Fixed time horizon**: 80-year simulation period may not capture long-term dynamics
+3. **Limited climate scenarios**: Analysis used current climate conditions only

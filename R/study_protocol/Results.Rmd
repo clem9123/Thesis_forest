@@ -1,0 +1,615 @@
+---
+title: "Test protocole d'étude des contrainte et objectifs après scénarisation"
+author: "Clémentine de Montgolfier"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+output: html_document
+---
+
+```{r options, include=FALSE}
+# set working dir for all chunks to ..
+knitr::opts_knit$set(root.dir = "../../")
+# Set global chunk options
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width = 8,
+  fig.height = 8,
+  fig.align = "center"
+)
+```
+
+```{r libraries-and-data, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(fs)
+library(gridExtra)
+library(grid)
+library(knitr)
+library(patchwork)
+library(sf)
+source("R/utils/output_utils.R")
+```
+
+```{r, message = FALSE, warning = FALSE}
+productivity_scene <- import_output_scene(
+  output_name = "productivityScene",
+  base_path = "C:/Capsis4/data/forceps/clementine/Test_protocole/",
+  output_file = "data/forceeps_output/protocole_productivityScene.RData"
+)
+
+mean_scene <- import_output_scene(
+  output_name = "mean",
+  base_path = "C:/Capsis4/data/forceps/clementine/Test_protocole/",
+  output_file = "data/forceeps_output/protocole_meanScene.RData"
+)
+```
+
+complete_scene <- import_output_scene(
+    output_name = "complete",
+    base_path = "C:/Capsis4/data/forceps/clementine/Test_protocole/",
+    output_file = "output/protocole_completeScene.RData") %>%
+    filter(date <= "2100") %>%
+    group_by(plot_id, date, scenario) %>%
+    summarise(
+        totalVolumem3.ha = sum(totalVolumem3.ha, na.rm = TRUE),
+        totalBiomass_t_ha = sum(totalBiomass_t_ha, na.rm = TRUE),
+        .groups = "drop"
+    )
+
+# Etats initiaux des placettes
+
+```{r}
+# récuperer les plots id
+plots_id <- productivity_scene %>%
+  pull(plot_id) %>%
+  unique()
+
+# select plotid in forest
+load("data/forest_data.RData")
+forest_data %>% as.data.frame() %>% 
+  filter(Identifiant.peuplement.élémentaire %in% plots_id) %>%
+  select(Identifiant.peuplement.élémentaire, surface.retenue, Type.de.peuplement, Essence.déterminant.la.sylviculture, Essence.dominante.1, Essence.dominante.2, Structure.et.occupation.du.sol, surf.terrière.moy, diamètre.mean, median_age) %>%
+  # print as a table
+  knitr::kable(
+    caption = "État initial des placettes",
+    col.names = c("Plot ID", "Surface", "Type de peuplement", "Essence déterminante", "Essence dominante 1", "Essence dominante 2", "Structure et occupation du sol", "Surface terrière (m2/ha)", "Diamètre moyen (cm)", "Âge médian (ans)")
+  )
+```
+
+```{r}
+productivity_scene %>%
+  filter(date == "2021") %>%
+  group_by(plot_id, speciesShortName) %>%
+  summarise(adultTreeBasalArea = sum(adultTreeBasalArea, na.rm = TRUE)) %>%
+  ggplot(aes(x = plot_id, y = adultTreeBasalArea, fill = speciesShortName)) +
+  # stack
+  geom_bar(stat = "identity", position = "stack") +
+  labs(
+    title = "Surface terrière initiale par placette et espèce",
+    x = "Placette",
+    y = "Surface terrière (m2/ha)",
+    fill = "Espèce"
+  ) +
+  theme_minimal()
+```
+
+# Exploration des itinéraires (pour validation des dynamiques forestières)
+
+Pour rappel des itinéraires :
+
+- Coupe rase : *(simulation1)*
+  - coupe d’aménagement tous les 10 ans 30% (type de coupe 0.5) en gardant la composition initiale
+  - coupe rase à l’âge de maturité de l’essence majoritaire
+
+- Irrégulier mixte : *(simulation2)*
+  - coupe partielle tous les 5 ans de 10% (type de coupe 0.5)
+  - en cherchant une composition égale des 4 espèces principales
+
+- Sans coupe : *(simulation3)*
+  - libre évolution sans intervention
+  
+
+```{r}
+scen_1 <- productivity_scene %>%
+  group_by(plot_id, speciesShortName, date, scenario) %>%
+  summarise(adultTreeBasalArea = mean(adultTreeBasalArea, na.rm = TRUE)) %>%
+  ungroup()
+
+ggplot(scen_1) +
+  geom_line(aes(x = date, y = adultTreeBasalArea, color = speciesShortName)) +
+  facet_grid(plot_id ~ scenario) +
+  labs(
+    title = "Productivité par placette et espèce",
+    x = "Date",
+    y = "",
+    color = "Espèce"
+  ) +
+  theme_minimal()
+```
+
+Je ne suis pas sûre de pourquoi il y a des chutes de surface terrière dans la simulaion 3 (sans coupe), l'itinéraire étant bien : 150_3_0.5_0%_FSyl-80. peut-être juste mortalité naturelle
+
+# Calcul et visualisation des indicateurs par placette
+
+Sur les 80 ans de simulations on calcul les indicateurs suivants :
+
+- Indices de diversité de Hill (richesse, Shannon, Simpson, Hill 0, Hill 1, Hill 2)
+
+- Volume extrait par scénario
+
+- Biomasse sur pied totale et par espèce
+
+
+```{r}
+productivity_scene <- productivity_scene %>%
+  filter(date <= "2100")
+
+mean_scene <- mean_scene %>%
+  filter(date <= "2100")
+```
+
+```{r}
+# 1. Calcul des indices de diversité de Hill
+div <- productivity_scene %>%
+  filter(adultTreeNumber_ha > 0) %>%
+  group_by(plot_id, date, scenario) %>%
+  mutate(
+    abundance = adultTreeNumber_ha / sum(adultTreeNumber_ha, na.rm = TRUE)
+  ) %>%
+  summarise(
+    richness = n_distinct(speciesShortName),
+    shannon = -sum(abundance * log2(abundance), na.rm = TRUE),
+    simpson = sum((abundance^2), na.rm = TRUE),
+    hill_0 = richness,
+    hill_1 = exp(shannon),
+    hill_2 = 1 / simpson,
+    .groups = "drop"
+  )
+
+# 2. Calcul du volume extrait par scénario
+mean_scene1 <- mean_scene %>%
+  group_by(plot_id, date, scenario) %>%
+  summarise(
+    extracted_volume_m3_ha =
+      max(totalVolumem3.ha, na.rm = TRUE) - min(totalVolumem3.ha, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# 3. Biomasse par espèce
+biomasse_par_espece <- productivity_scene %>%
+  mutate(type = "Par espèce")
+
+# 4. Biomasse totale par placette
+biomasse_totale <- productivity_scene %>%
+  group_by(plot_id, date, scenario) %>%
+  summarise(
+    adultTreeBasalArea = sum(adultTreeBasalArea, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(speciesShortName = "Total", type = "Totale")
+
+# 5. Fusion biomasse
+biomasse_all <- bind_rows(
+  biomasse_par_espece %>% mutate(type = "Par espèce"),
+  biomasse_totale
+)
+
+# 6. Fusion finale : diversité + volume + biomasse
+final_table <- biomasse_all %>%
+  left_join(div, by = c("plot_id", "date", "scenario")) %>%
+  left_join(mean_scene1, by = c("plot_id", "date", "scenario"))
+```
+
+```{r}
+p_volume <- 
+  ggplot(final_table,
+         aes(x = date, y = extracted_volume_m3_ha, color = scenario)) +
+  facet_wrap(~plot_id) +
+  geom_line() +
+  labs(
+    title = "Volume de bois extrait par placette",
+    x = "Date",
+    y = "Volume extrait (m3/ha)",
+    color = "Placette"
+  ) +
+  theme_minimal()
+
+p_ba <- 
+  ggplot(final_table,
+         aes(x = date, y = adultTreeBasalArea,
+             color = speciesShortName, linetype = type)) +
+  geom_line() +
+  facet_grid(plot_id ~ scenario) +
+  labs(
+    title = "Biomasse sur pied par placette, espèce et totale",
+    x = "Date",
+    y = "Biomasse sur pied (t/ha)",
+    color = "Espèce",
+    linetype = "Type"
+  ) +
+  theme_minimal()
+
+# une couleur pour chque indicateur hill0 1 et 2
+p_diversity <- ggplot(final_table, aes(x = date)) +
+  geom_line(aes(y = hill_0), color = "blue") +
+  geom_line(aes(y = hill_1), color = "green") +
+  geom_line(aes(y = hill_2), color = "red") +
+  facet_grid(plot_id ~ scenario) +
+  labs(
+    title = "Diversité",
+    x = "Date",
+    y = "Diversité"
+  ) +
+  theme_minimal()
+```
+
+```{r, fig.height=20}
+p_volume + p_ba + p_diversity +
+  plot_layout(ncol = 1)
+```
+
+# Indicateurs globaux
+
+```{r}
+generate_scenario <- function(mean_scene,
+                              productivity_scene,
+                              itineraries, proportions,
+                              name,
+                              itineraries_map,
+                              n_reps = 10,
+                              seed = 123) {
+  set.seed(seed)
+
+  all_mean <- list()
+  all_prod <- list()
+
+  for (rep_i in seq_len(n_reps)) {
+    # Récupérer tous les plots distincts
+    all_plots <- unique(mean_scene$plot_id)
+
+    # Shuffle plots to randomize
+    shuffled_plots <- sample(all_plots)
+
+    # Calculer nombre de plots par itinéraire selon proportions
+    n_plots <- length(all_plots)
+    n_per_itin <- round(proportions * n_plots)
+
+    # Ajuster si la somme n'est pas exactement égale (à cause des arrondis)
+    diff_plots <- n_plots - sum(n_per_itin)
+    if (diff_plots != 0) {
+      n_per_itin[1] <- n_per_itin[1] + diff_plots
+    }
+
+    # Attribuer les plots à chaque itinéraire
+    idx_start <- 1
+    selected_plots_list <- list()
+    for (i in seq_along(itineraries)) {
+      idx_end <- idx_start + n_per_itin[i] - 1
+      selected_plots_list[[i]] <- shuffled_plots[idx_start:idx_end]
+      idx_start <- idx_end + 1
+    }
+
+    # Extraire et renommer les données
+    mean_scene_mix <-
+      purrr::map2_dfr(
+        itineraries, selected_plots_list,
+        function(itin, plots) {
+          mean_scene %>%
+            filter(plot_id %in% plots, scenario == itineraries_map[[itin]])
+        }
+      ) %>%
+      mutate(scenario = name, rep = rep_i)
+
+    productivity_scene_mix <-
+      purrr::map2_dfr(
+        itineraries, selected_plots_list, function(itin, plots) {
+          productivity_scene %>%
+            filter(plot_id %in% plots, scenario == itineraries_map[[itin]])
+        }
+      ) %>%
+      mutate(scenario = name, rep = rep_i)
+
+    all_mean[[rep_i]] <- mean_scene_mix
+    all_prod[[rep_i]] <- productivity_scene_mix
+  }
+
+  list(
+    mean_scene = bind_rows(all_mean),
+    productivity_scene = bind_rows(all_prod)
+  )
+}
+```
+
+```{r}
+compute_mean_indicators <- function(mean_scene) {
+  mean_scene %>%
+    group_by(scenario, date, plot_id, rep) %>%
+    summarise(
+      volume_extracted_m3_ha = max(totalVolumem3.ha, na.rm = TRUE) - min(totalVolumem3.ha, na.rm = TRUE),
+      totalBasalAream2_ha = min(totalBasalAream2.ha, na.rm = TRUE),
+      .groups = "drop_last"
+    ) %>%
+    group_by(scenario, date, rep) %>%
+    summarise(
+      extracted_volume_m3_ha = mean(volume_extracted_m3_ha, na.rm = TRUE),
+      totalBasalAream2_ha = mean(totalBasalAream2_ha, na.rm = TRUE),
+      .groups = "drop_last"
+    ) %>%
+    group_by(scenario, rep) %>% # grouper par scénario et répétition
+    arrange(date, .by_group = TRUE) %>% # trier par date dans chaque groupe
+    mutate(cumul_volume = cumsum(extracted_volume_m3_ha)) %>% # cumul dans l'ordre
+    ungroup()
+}
+
+
+compute_diversity_indicators <- function(productivity_scene) {
+  # Diversité locale
+  local_div <- productivity_scene %>%
+    filter(adultTreeNumber_ha > 0) %>%
+    group_by(plot_id, date, scenario, rep) %>%
+    mutate(abundance = adultTreeNumber_ha / sum(adultTreeNumber_ha, na.rm = TRUE)) %>%
+    summarise(
+      richness = n_distinct(speciesShortName),
+      shannon = -sum(abundance * log2(abundance), na.rm = TRUE),
+      simpson = sum((abundance^2), na.rm = TRUE),
+      hill_0 = richness,
+      hill_1 = exp(shannon),
+      hill_2 = 1 / simpson,
+      .groups = "drop"
+    ) %>%
+    group_by(scenario, date, rep) %>%
+    summarise(
+      hill_0_local = mean(hill_0, na.rm = TRUE),
+      hill_1_local = mean(hill_1, na.rm = TRUE),
+      hill_2_local = mean(hill_2, na.rm = TRUE),
+      .groups = "drop"
+    )
+
+  # Diversité globale
+  global_div <- productivity_scene %>%
+    filter(adultTreeNumber_ha > 0) %>%
+    group_by(scenario, date, rep, speciesShortName) %>%
+    summarise(abundance = sum(adultTreeNumber_ha, na.rm = TRUE), .groups = "drop") %>%
+    group_by(scenario, date, rep) %>%
+    mutate(rel_abundance = abundance / sum(abundance, na.rm = TRUE)) %>%
+    summarise(
+      richness = n_distinct(speciesShortName),
+      shannon = -sum(rel_abundance * log2(rel_abundance), na.rm = TRUE),
+      simpson = sum(rel_abundance^2, na.rm = TRUE),
+      hill_0_global = richness,
+      hill_1_global = exp(shannon),
+      hill_2_global = 1 / simpson,
+      .groups = "drop"
+    )
+
+  # Fusion des deux
+  full_div <- local_div %>%
+    left_join(global_div, by = c("scenario", "date", "rep"))
+
+  return(full_div)
+}
+```
+
+```{r}
+# Définir les scénarios homogènes et mixtes
+scenario_mix_list <- list(
+  coupe_rase       = list(itin = c("coupe_rase"), props = c(1)),
+  irregulier       = list(itin = c("irregulier"), props = c(1)),
+  sans_coupe       = list(itin = c("sans_coupe"), props = c(1)),
+  mix_rase_irr     = list(itin = c("coupe_rase", "irregulier"), props = c(0.5, 0.5)),
+  mix_rase_nocut   = list(itin = c("coupe_rase", "sans_coupe"), props = c(0.5, 0.5)),
+  mix_irr_nocut    = list(itin = c("irregulier", "sans_coupe"), props = c(0.5, 0.5)),
+  mix_all          = list(itin = c("coupe_rase", "irregulier", "sans_coupe"), props = c(0.4, 0.3, 0.3))
+)
+
+# Mapping des noms
+itineraries_map <- list(
+  coupe_rase  = "simulation_1",
+  irregulier  = "simulation_2",
+  sans_coupe  = "simulation_3"
+)
+```
+
+```{r}
+all_mean_scene <- list()
+all_prod_scene <- list()
+
+for (scenario_name in names(scenario_mix_list)) {
+  config <- scenario_mix_list[[scenario_name]]
+
+  if (length(config$itin) == 1) {
+    # Scénarios homogènes : un seul tirage (pas besoin de répéter)
+    generated <- generate_scenario(
+      mean_scene = mean_scene,
+      productivity_scene = productivity_scene,
+      itineraries = config$itin,
+      proportions = config$props,
+      name = scenario_name,
+      itineraries_map = itineraries_map,
+      n_reps = 1, # pas de répétition pour les scénarios homogènes
+      seed = 123
+    )
+    # Pas de colonne rep, on ajoute rep = 1 pour homogénéité
+    generated$mean_scene$rep <- 1
+    generated$productivity_scene$rep <- 1
+  } else {
+    # Scénarios mixtes : répétitions pour variabilité
+    generated <- generate_scenario(
+      mean_scene = mean_scene,
+      productivity_scene = productivity_scene,
+      itineraries = config$itin,
+      proportions = config$props,
+      name = scenario_name,
+      itineraries_map = itineraries_map,
+      n_reps = 10, # nombre de répétitions souhaité
+      seed = 123
+    )
+  }
+
+  all_mean_scene[[scenario_name]] <- generated$mean_scene
+  all_prod_scene[[scenario_name]] <- generated$productivity_scene
+}
+
+# Fusionner tous les résultats
+combined_mean <- bind_rows(all_mean_scene)
+combined_prod <- bind_rows(all_prod_scene)
+
+# Ajouter group_by(rep) dans tes fonctions de calcul d'indicateurs
+df_mean <- compute_mean_indicators(combined_mean) %>%
+  group_by(scenario, date, rep) %>%
+  summarise_all(first) %>% # ou autre agrégation adaptée
+  ungroup()
+
+df_div <- compute_diversity_indicators(combined_prod) %>%
+  group_by(scenario, date, rep) %>%
+  summarise_all(first) %>%
+  ungroup()
+
+final_df <- left_join(df_mean, df_div, by = c("scenario", "date", "rep"))
+```
+
+
+```{r}
+p_vol <- ggplot(final_df, aes(x = date, y = cumul_volume, color = scenario)) +
+  geom_line() +
+  labs(
+    title = "Volume cumulé extrait par scénario",
+    x = "Date", y = "Volume (m3/ha)"
+  ) +
+  theme_minimal()
+
+p_div_global <- ggplot(final_df, aes(x = date, y = hill_1_global, color = scenario)) +
+  geom_line() +
+  labs(
+    title = "Diversité de Shannon (Hill 1) globale",
+    x = "Date", y = "Hill 1"
+  ) +
+  theme_minimal()
+
+p_div_local <- ggplot(final_df, aes(x = date, y = hill_1_local, color = scenario)) +
+  geom_line() +
+  labs(
+    title = "Diversité de Shannon (Hill 1) locale",
+    x = "Date", y = "Hill 1"
+  ) +
+  theme_minimal()
+
+p_ba <- ggplot(final_df, aes(x = date, y = totalBasalAream2_ha, color = scenario)) +
+  geom_line() +
+  labs(
+    title = "Surface de la section transversale (Basal Area)",
+    x = "Date", y = "Basal Area (m2/ha)"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+(p_vol + p_ba) / (p_div_global + p_div_local) +
+  plot_layout(ncol = 1) +
+  plot_annotation(title = "Indicateurs globaux par scénario et répétition")
+```
+
+
+```{r}
+p_div_global <- ggplot(final_df %>% filter(scenario == "coupe_rase"), aes(x = date, y = hill_1_global, color = scenario)) +
+  geom_line() +
+  labs(
+    title = "Diversité de Shannon (Hill 1) globale",
+    x = "Date", y = "Hill 1"
+  ) +
+  theme_minimal()
+
+p_div_local <- ggplot(final_df %>% filter(scenario == "coupe_rase"), aes(x = date, y = hill_1_local, color = scenario)) +
+  geom_line() +
+  labs(
+    title = "Diversité de Shannon (Hill 1) locale",
+    x = "Date", y = "Hill 1"
+  ) +
+  theme_minimal()
+
+p_div_local + p_div_global +
+  plot_layout(ncol = 1) +
+  plot_annotation(title = "Diversité de Shannon (Hill 1) pour la coupe rase")
+```
+
+
+# Relations entre indicateurs globaux
+
+```{r}
+aggregated <- final_df %>%
+  group_by(scenario, rep) %>%
+  summarise(
+    cumul_volume = max(cumul_volume, na.rm = TRUE),
+    mean_totalBasalAream2_ha = mean(totalBasalAream2_ha, na.rm = TRUE),
+    mean_hill_1_global = mean(hill_1_global, na.rm = TRUE),
+    mean_hill_1_local = mean(hill_1_local, na.rm = TRUE),
+  )
+```
+
+```{r}
+p_div_local_global <- ggplot(aggregated, aes(x = mean_hill_1_global, y = mean_hill_1_local, color = scenario)) +
+  geom_point() +
+  # la ligne y = x
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey") +
+  labs(
+    title = "Relation entre diversité globale et locale",
+    x = "Hill 1 Global", y = "Hill 1 Local"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+p_div_vol <- ggplot(aggregated, aes(x = cumul_volume, y = mean_hill_1_global, color = scenario)) +
+  geom_point() +
+  labs(
+    title = "Relation entre volume extrait et diversité globale",
+    x = "Cumul Volume (m3/ha)", y = "Hill 1 Global"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+p_vol_ba <- ggplot(aggregated, aes(x = cumul_volume, y = mean_totalBasalAream2_ha, color = scenario)) +
+  geom_point() +
+  labs(
+    title = "Relation entre volume extrait et Basal Area",
+    x = "Cumul Volume (m3/ha)", y = "Basal Area (m2/ha)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+p_div_ba <- ggplot(aggregated, aes(x = mean_hill_1_global, y = mean_totalBasalAream2_ha, color = scenario)) +
+  geom_point() +
+  labs(
+    title = "Relation entre diversité globale et Basal Area",
+    x = "Hill 1 Global", y = "Basal Area (m2/ha)"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+p_div_local_global + p_div_vol + p_vol_ba + p_div_ba +
+  plot_layout(ncol = 2) +
+  plot_annotation(title = "Relations entre indicateurs globaux")
+```
+
+
+```{r}
+# 3D plot
+library(plotly)
+plot_ly(aggregated, x = ~cumul_volume, y = ~mean_hill_1_global, z = ~mean_totalBasalAream2_ha, color = ~scenario, type = "scatter3d", mode = "markers") %>%
+  layout(
+    title = "3D Plot of Scenarios",
+    scene = list(
+      xaxis = list(title = "Volume (m3/ha)"),
+      yaxis = list(title = "Mean Hill 1"),
+      zaxis = list(title = "Mean Basal Area (m2/ha)")
+    )
+  )
+```
+
+# A faire
+
+- [ ] Choisir des parcelles plus diversifiés et représentatives
+- [ ] Ajouter des indicateurs (structure, couvert, recrutement, biomasse morte)
+- [ ] Faire les calculs avec le tableau complet (code à écrire et optimiser en terme de mémoire) car je ne pense pas pouvoir utiliser autre chose que ça si on veut faire des indices de diversité structurelle (a réflechir un petit peu mais potentiellement aucune sortie ne contiendra ce qui est nécessaire)
+- [x] Ajouter un tableau récapitulatifs des états initiaux des placettes, pour une meilleure compréhension (ce sera nécéssaire aussi quand j'aurais beaucoup plus de placettes)
+- [ ] Ajouter les répétitions de forceeps pour faire les moyennes et voir comment ça s'intègre dans le flux de travail

@@ -1,72 +1,72 @@
-"","Forceps_Code","Latin_Name","Retz_Code","French_Name"
-"1",0,"Abies alba","S.P","Sapin pectiné"
-"2",1,"Larix decidua",NA,NA
-"3",2,"Picea abies","EPC","Epicéa commun"
-"4",3,"Pinus cembra",NA,NA
-"5",4,"Pinus montana",NA,NA
-"6",5,"Pinus sylvestris","P.S","Pin sylvestre"
-"7",6,"Taxus baccata","IFS","If commun"
-"8",7,"Acer campestre","ERC","Erable champêtre"
-"9",8,"Acer platanoides","ERP","Erable plane"
-"10",9,"Acer pseudoplatanus","ERS","Erable sycomore"
-"11",10,"Alnus glutinosa",NA,NA
-"12",11,"Alnus incana",NA,NA
-"13",12,"Alnus viridis",NA,NA
-"14",13,"Betula pendula","BOU","Bouleaux divers"
-"15",14,"Carpinus betulus","CHA","Charme"
-"16",15,"Castanea sativa","CHT","Châtaignier"
-"17",16,"Corylus avellana",NA,NA
-"18",17,"Fagus sylvatica","HET","Hêtre"
-"19",18,"Fraxinus excelsior","FRE","Frênes"
-"20",19,"Populus nigra",NA,NA
-"21",20,"Populus tremula","TRE","Tremble"
-"22",21,"Quercus petraea","CHS","Chêne sessile"
-"23",22,"Quercus pubescens","CHY","Chêne pubescent"
-"24",23,"Quercus robur","CHP","Chêne pédonculé"
-"25",24,"Salix alba",NA,NA
-"26",25,"Sorbus aria","ALB","Alisier blanc"
-"27",26,"Sorbus aucuparia","SOR","Sorbier des oiseleurs"
-"28",27,"Tilia cordata",NA,NA
-"29",28,"Tilia platyphyllos",NA,NA
-"30",29,"Ulmus glabra",NA,NA
-"31",30,"Pinus pinaster","P.M","Pin maritime"
-"32",31,"Pinus nigra","P.L","Pin laricio"
-"33",31,"Pinus nigra","P.N","Pins noirs divers"
-"34",32,"Pinus halepensis",NA,NA
-"35",33,"Pseudotsuga menziesii","DOU","Douglas"
-"36",34,"Quercus ilex",NA,NA
-"37",35,"Angio_Deciduous species",NA,NA
-"38",36,"Angio_Evergreen species",NA,NA
-"39",37,"Gymno_Evergreen species",NA,NA
-"40",NA,"Sorbus sp.","ALI","Alisier"
-"41",NA,"Sorbus torminalis","ALT","Alisier torminal"
-"42",NA,"Alnus sp.","AUL","Aulnes divers"
-"43",NA,"Quercus cerris","CHC","Chêne chevelu"
-"44",NA,"Quercus sp.","CHE","Chênes indigènes"
-"45",NA,"Quercus rubra","CHR","Chêne rouge"
-"46",NA,"Acer sp.","ERA","Grands Erables"
-"47",NA,"Various fruit trees","FRU","Fruitiers divers"
-"48",NA,"Aesculus hippocastanum","MAR","Marronnier (d'Inde)"
-"49",NA,"Prunus avium","MER","Merisier"
-"50",NA,"Juglans sp.","NOY","Noyers"
-"51",NA,"Ulmus sp.","ORM","Ormes divers"
-"52",NA,"Populus sp.","PEU","Peupliers divers"
-"53",NA,"Platanus × acerifolia","PLA","Platane"
-"54",NA,"Pyrus, Malus, Prunus spp.","PPP","Poirier, Pommier, Prunier"
-"55",NA,"Robinia pseudoacacia","ROB","Robinier"
-"56",NA,"Salix sp.","SAU","Saules"
-"57",NA,"Tilia sp.","TIL","Tilleuls"
-"58",NA,"Liriodendron tulipifera","TUL","Tulipier de Virginie"
-"59",NA,"Cedrus atlantica or Cedrus libani","CEA","Cèdres de l’Atlas ou du Liban"
-"60",NA,"Cupressus sp.","CYP","Cyprès"
-"61",NA,"Other Picea species","EPI","Epicéa autres"
-"62",NA,"Picea sitchensis","EPS","Epicéa de Sitka"
-"63",NA,"Juniperus sp.","GEN","Genévrier"
-"64",NA,"Larix sp.","MEL","Mélèzes divers"
-"65",NA,"Pinus sp.","PIN","Pin"
-"66",NA,"Pinus strobus","P.W","Pin Weymouth"
-"67",NA,"Abies nordmanniana","S.N","Sapin de Nordmann"
-"68",NA,"Abies grandis","S.V","Sapin de Vancouver (grandis)"
-"69",NA,"Taxodiaceae family","TAX","Taxodiacées"
-"70",NA,"Thuja plicata","THU","Thuya géant"
-"71",NA,"Tsuga heterophylla","TSU","Tsuga hétérophylle"
+"","Forceps_Code","Latin_Name","speciesShortName","Retz_Code","French_Name"
+"1",0,"Abies alba","AAlb","S.P","Sapin pectiné"
+"2",1,"Larix decidua","LDec",NA,NA
+"3",2,"Picea abies","PAbi","EPC","Epicéa commun"
+"4",3,"Pinus cembra","PCem",NA,NA
+"5",4,"Pinus montana","PMon",NA,NA
+"6",5,"Pinus sylvestris","PSyl","P.S","Pin sylvestre"
+"7",6,"Taxus baccata","TBac","IFS","If commun"
+"8",7,"Acer campestre","ACam","ERC","Erable champêtre"
+"9",8,"Acer platanoides","APla","ERP","Erable plane"
+"10",9,"Acer pseudoplatanus","APse","ERS","Erable sycomore"
+"11",10,"Alnus glutinosa","AGlu",NA,NA
+"12",11,"Alnus incana","AInc",NA,NA
+"13",12,"Alnus viridis","AVir",NA,NA
+"14",13,"Betula pendula","BPen","BOU","Bouleaux divers"
+"15",14,"Carpinus betulus","CBet","CHA","Charme"
+"16",15,"Castanea sativa","CSat","CHT","Châtaignier"
+"17",16,"Corylus avellana","Cave",NA,NA
+"18",17,"Fagus sylvatica","FSyl","HET","Hêtre"
+"19",18,"Fraxinus excelsior","FExc","FRE","Frênes"
+"20",19,"Populus nigra","PNig",NA,NA
+"21",20,"Populus tremula","PTre","TRE","Tremble"
+"22",21,"Quercus petraea","QPet","CHS","Chêne sessile"
+"23",22,"Quercus pubescens","QPub","CHY","Chêne pubescent"
+"24",23,"Quercus robur","QRob","CHP","Chêne pédonculé"
+"25",24,"Salix alba","SAlb",NA,NA
+"26",25,"Sorbus aria","SAri","ALB","Alisier blanc"
+"27",26,"Sorbus aucuparia","SAuc","SOR","Sorbier des oiseleurs"
+"28",27,"Tilia cordata","TCor",NA,NA
+"29",28,"Tilia platyphyllos","TPla",NA,NA
+"30",29,"Ulmus glabra","UGla",NA,NA
+"31",30,"Pinus pinaster","Pmar","P.M","Pin maritime"
+"32",31,"Pinus nigra","Pgra","P.L","Pin laricio"
+"33",31,"Pinus nigra","Pgra","P.N","Pins noirs divers"
+"34",32,"Pinus halepensis","Phal",NA,NA
+"35",33,"Pseudotsuga menziesii","Ptsu","DOU","Douglas"
+"36",34,"Quercus ilex","Qile",NA,NA
+"37",35,"Angio_Deciduous species","Adec",NA,NA
+"38",36,"Angio_Evergreen species","Aeve",NA,NA
+"39",37,"Gymno_Evergreen species","Geve",NA,NA
+"40",NA,"Sorbus sp.",NA,"ALI","Alisier"
+"41",NA,"Sorbus torminalis",NA,"ALT","Alisier torminal"
+"42",NA,"Alnus sp.",NA,"AUL","Aulnes divers"
+"43",NA,"Quercus cerris",NA,"CHC","Chêne chevelu"
+"44",NA,"Quercus sp.",NA,"CHE","Chênes indigènes"
+"45",NA,"Quercus rubra",NA,"CHR","Chêne rouge"
+"46",NA,"Acer sp.",NA,"ERA","Grands Erables"
+"47",NA,"Various fruit trees",NA,"FRU","Fruitiers divers"
+"48",NA,"Aesculus hippocastanum",NA,"MAR","Marronnier (d'Inde)"
+"49",NA,"Prunus avium",NA,"MER","Merisier"
+"50",NA,"Juglans sp.",NA,"NOY","Noyers"
+"51",NA,"Ulmus sp.",NA,"ORM","Ormes divers"
+"52",NA,"Populus sp.",NA,"PEU","Peupliers divers"
+"53",NA,"Platanus × acerifolia",NA,"PLA","Platane"
+"54",NA,"Pyrus, Malus, Prunus spp.",NA,"PPP","Poirier, Pommier, Prunier"
+"55",NA,"Robinia pseudoacacia",NA,"ROB","Robinier"
+"56",NA,"Salix sp.",NA,"SAU","Saules"
+"57",NA,"Tilia sp.",NA,"TIL","Tilleuls"
+"58",NA,"Liriodendron tulipifera",NA,"TUL","Tulipier de Virginie"
+"59",NA,"Cedrus atlantica or Cedrus libani",NA,"CEA","Cèdres de l’Atlas ou du Liban"
+"60",NA,"Cupressus sp.",NA,"CYP","Cyprès"
+"61",NA,"Other Picea species",NA,"EPI","Epicéa autres"
+"62",NA,"Picea sitchensis",NA,"EPS","Epicéa de Sitka"
+"63",NA,"Juniperus sp.",NA,"GEN","Genévrier"
+"64",NA,"Larix sp.",NA,"MEL","Mélèzes divers"
+"65",NA,"Pinus sp.",NA,"PIN","Pin"
+"66",NA,"Pinus strobus",NA,"P.W","Pin Weymouth"
+"67",NA,"Abies nordmanniana",NA,"S.N","Sapin de Nordmann"
+"68",NA,"Abies grandis",NA,"S.V","Sapin de Vancouver (grandis)"
+"69",NA,"Taxodiaceae family",NA,"TAX","Taxodiacées"
+"70",NA,"Thuja plicata",NA,"THU","Thuya géant"
+"71",NA,"Tsuga heterophylla",NA,"TSU","Tsuga hétérophylle"
