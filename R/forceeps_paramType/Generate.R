@@ -14,10 +14,44 @@ site_file <- "RETZ_00102_02.site"
 potential_species <- "17" # 21 23 14 18 13" # 33 31 5
 source("R/Inventory/inventory_utils.R")
 
-## Load all data ---------------------------------------------------------------
+## Inventory -------------------------------------------------------------------
 #------------------------------------------------------------------------------#
 
-# 12_3_0.5_25_PAbi-40, FSyl-40,AAlb-20;12_3_0.5_25_PAbi-40, FSyl-40,AAlb-20;12_3_0.5_25_PAbi-40, FSyl-40,AAlb-20;12_3_0.5_25_PAbi-40, FSyl-40,AAlb-20;12_3_0.5_25_PAbi-40, FSyl-40,AAlb-20;12_3_0.5_25_PAbi-40, FSyl-40,AAlb-20;12_3_0.5_25_PAbi-40, FSyl-40,AAlb-20;12_3_0.5_25_PAbi-40, FSyl-40,AAlb-20;12_3_0.5_25_PAbi-40, FSyl-40,AAlb-20;12_3_0.5_25_PAbi-40, FSyl-40,AAlb-20;12_3_0.5_25_PAbi-40, FSyl-40,AAlb-20;12_3_0.5_25_PAbi-40, FSyl-40,AAlb-20
+# Génère un inventaire Forceps avec diamètres uniformes et toutes les tiges en FSyl
+
+library(dplyr)
+source("R/utils/inventory_utils.R")
+
+# Paramètres de l'inventaire
+n_trees <- 20
+diam_min <- 0
+diam_max <- 80
+species <- "FSyl"
+age <- 10
+
+# Générer l'inventaire uniforme avec la nouvelle fonction
+inventory <- simulate_inventory_uniforme(n_trees, diam_min, diam_max, species, age)
+
+# surface terrière
+# Surface terrière totale en m²/ha (π * (dbh/200)^2 pour chaque arbre, dbh en cm)
+surface_terriere <- sum(pi * (inventory$diamètre / 200)^2)*10
+print(paste("Surface terrière totale:", surface_terriere, "m²"))
+
+# Charger la table de correspondance des codes espèces
+# (à adapter selon votre environnement)
+corresponding.species <- data.frame(
+  Retz_Code = "FSyl",
+  Forceps_Code = 17
+)
+
+# Formater l'inventaire pour Forceps (utilise la fonction de inventory_utils.R)
+forceps_inventory <- format_to_forceps(inventory, patch_area = 1000, patchId = 1)
+
+# Sauvegarder l'inventaire (utilise la fonction de inventory_utils.R)
+write_forceps_inventory(forceps_inventory, "C:/Capsis4/data/forceps/clementine/Test_itinerary/data/unif.inv")
+
+## Scenario --------------------------------------------------------------------
+#------------------------------------------------------------------------------#
 
 # Create a scenario
 generate_scenario <- function(
@@ -62,6 +96,9 @@ generate_scenario <- function(
         )
         return(scenario)
 }
+
+## Command file ----------------------------------------------------------------
+#------------------------------------------------------------------------------#
 
 write_command_file(
     output_file = "C:/Capsis4/data/forceps/clementine/Test_itinerary/cmd.txt",

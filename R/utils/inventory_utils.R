@@ -130,7 +130,7 @@ get_species_distribution <- function(n_trees, retz_id, species_columns, method =
 	return(sampled)
 }
 
-## Inventory Generation --------------------------------------------------------
+## Inventory Generation from a patch -------------------------------------------
 #------------------------------------------------------------------------------#
 
 #' Simulate Inventory for a Patch
@@ -183,6 +183,31 @@ simulate_inventory_for_patch <- function(
 		inventory = inventory,
 		RUM = patch$RUM
 	))
+}
+
+## Uniform Inventory Generation ------------------------------------------------
+#------------------------------------------------------------------------------#
+
+#' Generate Uniform Inventory 
+#'
+#' @param n_trees Integer. Number of trees to generate.
+#' @param diam_min Numeric. Minimum diameter in cm.
+#' @param diam_max Numeric. Maximum diameter in cm.
+#' @param species Character. Species code.
+#' @param age Numeric. Age of trees.
+#' @return Data frame with inventory (species, diamètre, age).
+simulate_inventory_uniforme <- function(n_trees = 20, diam_min = 0, diam_max = 80, species = "FSyl", age = 10) {
+	# Générer des diamètres uniformément répartis
+	diameters <- seq(diam_min, diam_max, length.out = n_trees)
+	
+	# Créer le data.frame d'inventaire
+	inventory <- data.frame(
+		species = species,
+		diamètre = diameters,
+		age = age
+	)
+	
+	return(inventory)
 }
 
 ## Formatting for Forceps ------------------------------------------------------

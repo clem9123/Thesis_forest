@@ -176,7 +176,4 @@ import_output_scene <- function(
   # Return the complete aggregated dataset containing all processed simulation files
   # Note: The save functionality is commented out - could be implemented later
   return(aggregated_data)  # , file = output_file) - save functionality not implemented
-  
-  # Status message (note: this line is unreachable due to return statement above)
-  message("Aggregated data processing completed. Output file parameter: ", output_file)
 }
