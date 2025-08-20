@@ -142,6 +142,7 @@ base_path <- "C:/Capsis4/data/forceps/[your_user]/[study_name]/"
 - [x] Path management improved for reproducibility  
 - [x] Comprehensive documentation and analysis completed
 - [ ] Integration with main workflow (pending main.R development)
+- [ ] Review the report
 
 # Study Beginning
 
