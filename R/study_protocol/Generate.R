@@ -2,7 +2,7 @@
 #------------------------------------------------------------------------------#
 library(tidyverse)
 library(sf)
-source("R/inventory_utils.R")
+source("R/utils/inventory_utils.R")
 
 ## Parameters and data ---------------------------------------------------------
 #------------------------------------------------------------------------------#
@@ -12,24 +12,17 @@ source("R/inventory_utils.R")
 set.seed(3400)
 
 load("data/forest_data.RData")
-forest_data %>%
-  as.data.frame() %>%
-  filter(Structure.et.occupation.du.sol %in% c("F", "I")) %>%
-  filter(Classe.de.catégorie.de.diamètre.dominant == "S") %>%
-  nrow()
-forest_data %>%
-  as.data.frame() %>%
-  filter(Structure.et.occupation.du.sol %in% c("F", "I")) %>%
-  nrow()
 
-# ajouter l'age median quand il n'existe pas avec la formule (NA)
-forest_data$median_age[is.na(forest_data$median_age)] <- 
-  forest_data$diamètre.mean[is.na(forest_data$median_age)] * 2
-
+## A METTRE DANS IMPORT DATA
 Retz <- forest_data %>%
   as.data.frame() %>%
+  # ajouter l'age median quand il n'existe pas avec la formule
+  mutate(
+      median_age = ifelse(is.na(median_age),diamètre.mean * 2,median_age)
+  ) %>%
   filter(Structure.et.occupation.du.sol %in% c("F", "I")) %>%
   slice_sample(n = 10) # pour le test
+
 corresponding.species <-
   read.csv("data/corresponding_species.csv", header = TRUE, sep = ",")
 
