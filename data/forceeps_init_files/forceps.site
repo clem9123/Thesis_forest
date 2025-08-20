@@ -1,0 +1,19 @@
+# Forceps site file
+
+siteName = forceps
+siteBucketSize = 110
+
+siteAverageNitrogen = 100
+siteLatitude = 49.15
+siteLongitude = 3.05
+siteSlope = 0
+
+#siteRegenerationForclimDensity = 0
+siteRegenerationForclimDensity = 0.006
+
+#siteBrowsingDensity = 0
+siteBrowsingDensity = 0
+
+siteMaxETPRate = 12
+
+siteFractionInterceptedPrec = 0.3

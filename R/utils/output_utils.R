@@ -61,13 +61,6 @@ import_output_scene <- function(
   library(readr)   # Reading delimited files (read_table)
   library(stringr) # String manipulation (str_extract)
 
-  # ===== CONFIGURATION =====
-  # Determine how many lines to skip when reading files based on output type
-  # - "mean" files have 1 header line to skip
-  # - "productivityScene" files have 14 header lines to skip
-  skip <- ifelse(output_name == "mean", 1, 14)
-
-
   # ===== STEP 1: FILE DISCOVERY =====
   # Find all output directories that match the pattern "output-cmd_XX.txt" 
   # These directories contain the simulation result files
@@ -80,7 +73,7 @@ import_output_scene <- function(
     # Format: Retz_act.climate_inventaires_RETZ_XX_XX.inv_simulation_XX[output_name].txt
     sim_files <- dir_ls(
       dir_path,
-      regexp = paste0("Retz_act\\.climate_inventaires_RETZ_\\d+_\\d+\\.inv_simulation_\\d+", output_name, "\\.txt$"),
+      regexp = paste0("retz_act\\.climate_inventaires_RETZ_\\d+_\\d+\\.inv_simulation_\\d+", output_name, "\\.txt$"),
       type = "file"
     )
     
@@ -118,6 +111,9 @@ import_output_scene <- function(
 
     # ===== READ AND PROCESS CURRENT FILE =====
     # Read the simulation file, skipping header lines as determined earlier
+    header_lines <- readLines(file_path, warn = FALSE)
+    skip <- which(grepl("^#date", header_lines))[1] - 1
+    
     df <- read_table(file_path, show_col_types = FALSE, skip = skip)
     
     # Add metadata columns to identify the source of this data
@@ -131,7 +127,33 @@ import_output_scene <- function(
     # Standardize column names for consistency across all files
     colnames(df)[colnames(df) == "#date"] <- "date"  # Remove # from date column
     colnames(df) <- gsub("/", ".", colnames(df))     # Replace / with . in column names
-    colnames(df) <- gsub("[()]", "", colnames(df))   # Remove parentheses from column names
+    colnames(df) <- gsub("[()]", ".", colnames(df))   # Remove parentheses from column names
+    colnames(df) <- gsub("\\.$", "", colnames(df))     # remove last "." of colnames if there is
+
+    # ===== FORMAT FOR COMPLETE FILE =====
+    if(output_name == "complete") {
+      # ===== FORMAT FOR COMPLETE FILE =====
+      # Apply transformations to add diameter class and adjust date for cut events
+      df <- df %>%
+        mutate(cut = row_number() == 2) %>%
+        mutate(date_init = date) %>%
+        mutate(date = ifelse(cut, date + 0.1, date)) %>%
+        mutate(cut = as.logical(cut)) %>%
+        mutate(
+          classe_diam = case_when(
+        dbh.cm < 7.5  ~ "R",
+        dbh.cm < 17.5 ~ "I",
+        dbh.cm < 27.5 ~ "P",
+        dbh.cm < 47.5 ~ "M",
+        dbh.cm < 67.5 ~ "G",
+        dbh.cm >= 67.5 ~ "T",
+        TRUE ~ NA_character_
+          )
+        )
+      df$classe_diam <- factor(df$classe_diam,
+              levels = c("R", "I", "P", "M", "G", "T"),
+              ordered = TRUE)
+    }
 
     # ===== COMMENTED OUT: ADVANCED AGGREGATION CODE =====
     # The following commented code shows an alternative approach for data aggregation

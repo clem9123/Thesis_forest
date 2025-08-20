@@ -1,9 +1,12 @@
 
 # Global To Do
-- [ ] Change the path variable so that someone else can easily adapt it (for ForceEPS output).
+- [ ] Change the path variable so that someone else can easily adapt it (for ForCEEPS output mainly but also relative path for libraries).
 - [ ] Add a description of each created output and where they are created
 - [ ] Write the main in order to run each study independently (with parameters, maybe rethink the organisation to facilitate this)
 - [ ] A lot of code look alike : more function or how to make that clear
+
+- [ ] Add the forceeps initialisation files in data (for reproducibility)
+- [ ] Parfois Retz_act.climate est en maj parfois en min !!!
 
 # Description
 Summary of work done during the first year of the PhD, including literature review, preliminary analyses, and initial modeling work.
@@ -48,6 +51,10 @@ Summary of work done during the first year of the PhD, including literature revi
   - `Import_output.R`  
   by using `utils` and rewriting the code more cleanly.
 
+- [x] code reviewed to use inventory and output utils
+- [x] Path to check but it is far better already (pour l'instant je l'ai mis en haut du fichier pour que ce soit facile à changer)
+- [ ] Comment
+
 # Study Beginning
 
 Potential introduction for a Master internship:  
@@ -61,3 +68,8 @@ A lot of writing is still needed to explain the questions and what was done.
 
 - `utils.R` — mainly for inventory and output functions.
 - SEE : `R/utils/inventory_utils.R` & `R/utils/output_utils.R`
+
+# structure du code et de forceps :
+
+- data inventaire, ...
+- naming of files in order to work...
