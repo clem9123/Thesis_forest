@@ -3,18 +3,22 @@
 # Clémentine de Montgolfier
 #-------------------------------------------------------------------------------
 
+base_path = "C:/Capsis4/data/forceps/clementine/Test_itinerary/"
+
 ## Library and data ------------------------------------------------------------
 #------------------------------------------------------------------------------#
 
-base_path = "C:/Capsis4/data/forceps/clementine/Test_itinerary/"
 library(tidyverse)
+source("R/utils/inventory_utils.R")
+
 load("data/forest_data.RData")
+corresponding_species = read.csv("data/corresponding_species.csv")
+
 inventory_file <- "inventaires/RETZ_0_0.inv" # explain name
 climate_file <- "retz_act.climate"
 site_file <- "RETZ_00102_02.site"
 potential_species <- "17" # Fagus Sylvatica, Hêtre
-source("R/utils/inventory_utils.R")
-corresponding_species = read.csv("data/corresponding_species.csv")
+
 
 ## Inventory -------------------------------------------------------------------
 #------------------------------------------------------------------------------#
@@ -50,45 +54,51 @@ write_forceps_inventory(
 generate_scenario <- function(
     rotation = 10,
     basal_area = 25,
-    type = 0.5,
-    species = c("FSyl_80"),
-    first_rotation = NULL) {
-  total_years <- 80
-  # Si first_rotation n'est pas spécifié, utiliser rotation pour la première rotation
+    paramType = 0.5,
+    species_share = c("FSyl_80"),
+    first_rotation = NULL,
+    total_years = 80,
+    cycles = 3) {
+  
+  # --- Helper function to format species string ---
+  format_species <- function(species) {
+    sapply(species, function(sp) {
+      parts <- strsplit(sp, "_")[[1]]
+      paste0(parts[1], "-", parts[2])
+    }) %>%
+      paste(collapse = ",")
+  }
+  
+  # --- Handle first rotation ---
   if (is.null(first_rotation)) {
     first_rotation <- rotation
   }
-  # Calculer le nombre de rotations
+  
+  # --- Number of rotations ---
   n_rotations <- ceiling((total_years - first_rotation) / rotation) + 1
-  # Créer la chaîne pour la première rotation
+  
+  # --- Build first rotation string ---
   scenario_first <- paste0(
-    paste(first_rotation, 3, type, basal_area, sep = "_"), "_",
-    paste0(
-      sapply(species, function(sp) {
-        parts <- strsplit(sp, "_")[[1]]
-        paste0(parts[1], "-", parts[2])
-      }),
-      collapse = ","
-    )
+    paste(first_rotation, cycles, paramType, basal_area, sep = "_"), "_",
+    format_species(species_share)
   )
-  # Chaîne pour les rotations suivantes
+  
+  # --- Build subsequent rotation string ---
   scenario_other <- paste0(
-    paste(rotation, 3, type, basal_area, sep = "_"), "_",
-    paste0(
-      sapply(species, function(sp) {
-        parts <- strsplit(sp, "_")[[1]]
-        paste0(parts[1], "-", parts[2])
-      }),
-      collapse = ","
-    )
+    paste(rotation, cycles, paramType, basal_area, sep = "_"), "_",
+    format_species(species_share)
   )
-  # Construire le scénario complet
+  
+  # --- Final scenario string ---
   scenario <- paste(
     c(scenario_first, rep(scenario_other, n_rotations - 1)),
     collapse = ";"
   )
+  
+  # --- Return ---
   return(scenario)
 }
+
 
 ## Command file ----------------------------------------------------------------
 #------------------------------------------------------------------------------#
@@ -101,8 +111,8 @@ write_command_file(
 seeds <- c(332, 124, 102, 895, 869, 777, 969, 449, 131, 704)
 types <- seq(0, 1, by = 0.2)
 
-for (t in types) {
-  for (seed in seeds) {
+for (t in types) { # create simulations for each paramType
+  for (seed in seeds) { # create 10 repetitions for each paramType
     # write a simulation line
     write(
       paste0(
@@ -111,11 +121,10 @@ for (t in types) {
         climate_file, "\t",
         inventory_file, "\t",
         potential_species, "\t",
-        # Vous pouvez passer first_rotation ici si besoin, ex: first_rotation = 20
         generate_scenario(
           rotation = 12,
           basal_area = 15,
-          type = t,
+          paramType = t,
           species = c("FSyl_100"),
           first_rotation = 1
         )

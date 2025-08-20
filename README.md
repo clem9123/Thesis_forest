@@ -44,16 +44,13 @@ Summary of work done during the first year of the PhD, including literature revi
 
 ## Param_Type
 
-- Results are okay.
-- Would like to improve:
-  - `Create_unif_inv.R`
-  - `Generate.R`
-  - `Import_output.R`  
-  by using `utils` and rewriting the code more cleanly.
-
 - [x] code reviewed to use inventory and output utils
 - [x] Path to check but it is far better already (pour l'instant je l'ai mis en haut du fichier pour que ce soit facile à changer)
-- [ ] Comment
+- [x] Comment
+- [ ] Changes if a main is created to have base path and other parameters in the main
+- [ ] Write description
+
+- Code and results are great, kinda happy with this part
 
 # Study Beginning
 

@@ -1,3 +1,8 @@
+# Prepare scenario and files to study different itineraries
+# 12/06/2025
+# Clémentine de Montgolfier
+#-------------------------------------------------------------------------------
+
 base_path <- "C:/Capsis4/data/forceps/clementine/Test_itinerary/"
 
 source("R/utils/output_utils.R")
