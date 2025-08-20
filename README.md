@@ -29,6 +29,9 @@ Summary of work done during the first year of the PhD, including literature revi
 
 - Work in progress: need to explain and clean the code.
 
+- [x] Merge Create_unif and Generate so that there is one file and it uses inventory_utils 
+- [ ] Import output is made in the `Results.Rmd` file maybe change it to the import output for knitting speed and clarity
+
 ## Repetition
 
 - `Generate.R`: generate the necessary repetition data for ForceEPS.
@@ -44,9 +47,6 @@ Summary of work done during the first year of the PhD, including literature revi
   - `Generate.R`
   - `Import_output.R`  
   by using `utils` and rewriting the code more cleanly.
-
-- [x] Merge Create_unif and Generate so that there is one file and it uses inventory_utils 
-- [ ] Import output is made in the `Results.Rmd` file maybe change it to the import output for knitting speed and clarity
 
 # Study Beginning
 
