@@ -2,11 +2,12 @@
 # Global To Do
 - [ ] Change the path variable so that someone else can easily adapt it (for ForCEEPS output mainly but also relative path for libraries).
 - [ ] Add a description of each created output and where they are created
-- [ ] Write the main in order to run each study independently (with parameters, maybe rethink the organisation to facilitate this)
+- [ ] Write THE or MANY main in order to run each study independently (with parameters, maybe rethink the organisation to facilitate this)
 - [ ] A lot of code look alike : more function or how to make that clear
 
 - [ ] Add the forceeps initialisation files in data (for reproducibility)
 - [ ] Parfois Retz_act.climate est en maj parfois en min !!!
+- [ ] Créer l'arborescence pour forceeps dans les fichiers generate
 
 # Description
 Summary of work done during the first year of the PhD, including literature review, preliminary analyses, and initial modeling work.

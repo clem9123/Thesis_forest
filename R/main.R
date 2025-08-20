@@ -2,6 +2,8 @@
 
 path = "C:/Capsis4/data/forceps/clementine/Test_protocole"
 
+# Créer l'arborescence et les fichiers nécéssaires
+
 # generate forceeps initial files
 
 # run forceeps
