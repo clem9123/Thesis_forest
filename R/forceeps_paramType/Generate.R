@@ -8,11 +8,11 @@
 
 library(tidyverse)
 load("data/forest_data.RData")
-inventory_file <- "unif.inv" #"RETZ_00102_02.inv"
+inventory_file <- "unif.inv" # "RETZ_00102_02.inv"
 climate_file <- "retz_act.climate"
 site_file <- "RETZ_00102_02.site"
 potential_species <- "17" # 21 23 14 18 13" # 33 31 5
-source("R/Inventory/inventory_utils.R")
+source("R/utils/inventory_utils.R")
 
 ## Inventory -------------------------------------------------------------------
 #------------------------------------------------------------------------------#
@@ -34,7 +34,7 @@ inventory <- simulate_inventory_uniforme(n_trees, diam_min, diam_max, species, a
 
 # surface terrière
 # Surface terrière totale en m²/ha (π * (dbh/200)^2 pour chaque arbre, dbh en cm)
-surface_terriere <- sum(pi * (inventory$diamètre / 200)^2)*10
+surface_terriere <- sum(pi * (inventory$diamètre / 200)^2) * 10
 print(paste("Surface terrière totale:", surface_terriere, "m²"))
 
 # Charger la table de correspondance des codes espèces
@@ -55,76 +55,91 @@ write_forceps_inventory(forceps_inventory, "C:/Capsis4/data/forceps/clementine/T
 
 # Create a scenario
 generate_scenario <- function(
-    rotation = 10, 
+    rotation = 10,
     basal_area = 25,
     type = 0.5,
     species = c("FSyl_80"),
     first_rotation = NULL) {
-        total_years <- 80
-        # Si first_rotation n'est pas spécifié, utiliser rotation pour la première rotation
-        if (is.null(first_rotation)) {
-            first_rotation <- rotation
-        }
-        # Calculer le nombre de rotations
-        n_rotations <- ceiling((total_years - first_rotation) / rotation) + 1
-        # Créer la chaîne pour la première rotation
-        scenario_first <- paste0(
-            paste(first_rotation, 3, type, basal_area, sep = "_"), "_",
-            paste0(
-                sapply(species, function(sp) {
-                    parts <- strsplit(sp, "_")[[1]]
-                    paste0(parts[1], "-", parts[2])
-                }),
-                collapse = ","
-            )
-        )
-        # Chaîne pour les rotations suivantes
-        scenario_other <- paste0(
-            paste(rotation, 3, type, basal_area, sep = "_"), "_",
-            paste0(
-                sapply(species, function(sp) {
-                    parts <- strsplit(sp, "_")[[1]]
-                    paste0(parts[1], "-", parts[2])
-                }),
-                collapse = ","
-            )
-        )
-        # Construire le scénario complet
-        scenario <- paste(
-            c(scenario_first, rep(scenario_other, n_rotations - 1)),
-            collapse = ";"
-        )
-        return(scenario)
+  total_years <- 80
+  # Si first_rotation n'est pas spécifié, utiliser rotation pour la première rotation
+  if (is.null(first_rotation)) {
+    first_rotation <- rotation
+  }
+  # Calculer le nombre de rotations
+  n_rotations <- ceiling((total_years - first_rotation) / rotation) + 1
+  # Créer la chaîne pour la première rotation
+  scenario_first <- paste0(
+    paste(first_rotation, 3, type, basal_area, sep = "_"), "_",
+    paste0(
+      sapply(species, function(sp) {
+        parts <- strsplit(sp, "_")[[1]]
+        paste0(parts[1], "-", parts[2])
+      }),
+      collapse = ","
+    )
+  )
+  # Chaîne pour les rotations suivantes
+  scenario_other <- paste0(
+    paste(rotation, 3, type, basal_area, sep = "_"), "_",
+    paste0(
+      sapply(species, function(sp) {
+        parts <- strsplit(sp, "_")[[1]]
+        paste0(parts[1], "-", parts[2])
+      }),
+      collapse = ","
+    )
+  )
+  # Chaîne pour les rotations suivantes
+  scenario_other <- paste0(
+    paste(rotation, 3, type, basal_area, sep = "_"), "_",
+    paste0(
+      sapply(species, function(sp) {
+        parts <- strsplit(sp, "_")[[1]]
+        paste0(parts[1], "-", parts[2])
+      }),
+      collapse = ","
+    )
+  )
+  # Construire le scénario complet
+  scenario <- paste(
+    c(scenario_first, rep(scenario_other, n_rotations - 1)),
+    collapse = ";"
+  )
+  return(scenario)
 }
 
 ## Command file ----------------------------------------------------------------
 #------------------------------------------------------------------------------#
 
 write_command_file(
-    output_file = "C:/Capsis4/data/forceps/clementine/Test_itinerary/cmd.txt",
-    file_setup = "data/forceps.setup"
+  output_file = "C:/Capsis4/data/forceps/clementine/Test_itinerary/cmd.txt",
+  file_setup = "data/forceps.setup"
 )
 
-seeds = c(332, 124, 102, 895, 869, 777, 969, 449, 131, 704)
+seeds <- c(332, 124, 102, 895, 869, 777, 969, 449, 131, 704)
 types <- seq(0, 1, by = 0.2)
 
-for (t in types){
-    for (seed in seeds){
-        write(paste0(
-            seed, "\t",
-            site_file, "\t",
-            climate_file, "\t",
-            inventory_file, "\t",
-            potential_species, "\t",
-            # Vous pouvez passer first_rotation ici si besoin, ex: first_rotation = 20
-            generate_scenario(
-                    rotation = 12, 
-                    basal_area = 15,
-                    type = t,
-                    species = c("FSyl_100"),
-                    first_rotation = 1)),
-        file = "C:/Capsis4/data/forceps/clementine/Test_itinerary/cmd.txt",
-        append = TRUE
+for (t in types) {
+  for (seed in seeds) {
+    # write a simulation line
+    write(
+      paste0(
+        seed, "\t",
+        site_file, "\t",
+        climate_file, "\t",
+        inventory_file, "\t",
+        potential_species, "\t",
+        # Vous pouvez passer first_rotation ici si besoin, ex: first_rotation = 20
+        generate_scenario(
+          rotation = 12,
+          basal_area = 15,
+          type = t,
+          species = c("FSyl_100"),
+          first_rotation = 1
         )
-    }
+      ),
+      file = "C:/Capsis4/data/forceps/clementine/Test_itinerary/cmd.txt",
+      append = TRUE
+    )
+  }
 }
