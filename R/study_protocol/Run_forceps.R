@@ -1,13 +1,16 @@
 library(parallel)
 
+# Base path to FORCEEPS working directory
+forceeps_path = "C:/Capsis4/data/forceps/clementine/"
+analyse_name = "Study_protocol"
+base_path = paste0(forceeps_path, analyse_name, "/")
+output_base_path <- paste0("data/forceps/clementine/", analyse_name, "/")
+
 # Set working directory where capsis is run from
 setwd("C:/Capsis4")
 
 # Number of cores to use
 n_cores <- max(1, detectCores() - 2)
-
-# Path where the output folders are located
-output_base_path <- "data/forceps/clementine/Test_protocole"
 
 # Delete old output directories if they exist
 for (i in 1:10) {
@@ -20,8 +23,8 @@ for (i in 1:10) {
 
 # Build command list
 cmds <- sprintf(
-  'capsis -p script forceps.myscripts.brieuc.SimulationBrieucManagement data/forceps/clementine/Test_protocole/cmd_%d.txt',
-  1:10
+  'capsis -p script forceps.myscripts.brieuc.SimulationBrieucManagement %s',
+  file.path(output_base_path, sprintf("cmd_%d.txt", 1:10))
 )
 
 # Create parallel cluster

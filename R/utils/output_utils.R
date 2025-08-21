@@ -22,7 +22,7 @@
 # File Structure Expected:
 # base_path/
 #   ├── output-cmd_1.txt/
-#   │   ├── Retz_act.climate_inventaires_RETZ_XX_XX.inv_simulation_1productivityScene.txt
+#   │   ├── Retz_act.climate_inventories_RETZ_XX_XX.inv_simulation_1productivityScene.txt
 #   │   └── [more simulation files...]
 #   ├── output-cmd_2.txt/
 #   │   └── [simulation files...]
@@ -70,10 +70,10 @@ import_output_scene <- function(
   # For each output directory, find all simulation files and extract metadata
   all_sim_files <- map_dfr(output_dirs, function(dir_path) {
     # Find simulation files matching the specific naming pattern:
-    # Format: Retz_act.climate_inventaires_RETZ_XX_XX.inv_simulation_XX[output_name].txt
+    # Format: Retz_act.climate_inventories_RETZ_XX_XX.inv_simulation_XX[output_name].txt
     sim_files <- dir_ls(
       dir_path,
-      regexp = paste0("retz_act\\.climate_inventaires_RETZ_\\d+_\\d+\\.inv_simulation_\\d+", output_name, "\\.txt$"),
+      regexp = paste0("retz_act\\.climate_inventories_RETZ_\\d+_\\d+\\.inv_simulation_\\d+", output_name, "\\.txt$"),
       type = "file"
     )
     

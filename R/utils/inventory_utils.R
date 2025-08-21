@@ -328,14 +328,14 @@ generate_all_inventories <- function(Retz, distribution_types, species_proportio
         # Write inventory and site files
         write_forceps_inventory(
             inventory = forceps_inv, 
-            output_file = paste0(path, "/data/inventaires/", ligne, ".inv"),
+            output_file = paste0(path, "/data/inventories/", ligne, ".inv"),
 			patch_area = patcharea,
 			patch_number = patchnumber
         )
 
         # write the site file (using updated parameters)
         update_forceps_parameters(
-            "data/forceps.site",
+            "data/forceeps_init_files/forceps.site",
             updates = list(
                 "siteName" = ligne,
                 "siteBucketSize" = results$RUM
@@ -408,4 +408,52 @@ generate_command_files <- function(Retz, seed, path, setup_file, climate_file, p
 			)
 		}
 	}
+}
+
+## Folder Structure for ForCEEPS initialisation --------------------------------
+#------------------------------------------------------------------------------#
+
+#' Initialise Folder Structure for ForCEEPS Analysis
+#'
+#' @param base_path Character. Base directory path.
+#' @param analyse_name Character. Name of the analysis.
+#' @param overwrite Logical. If TRUE, overwrite existing analysis folder. Default FALSE.
+#' @return Character. Path to the created analysis folder.
+initialise_forceeps_folder <- function(base_path, analyse_name, overwrite = FALSE) {
+  analysis_path <- file.path(base_path, analyse_name)
+  data_path <- file.path(analysis_path, "data")
+  inventories_path <- file.path(data_path, "inventories")
+  sites_path <- file.path(data_path, "sites")
+
+  if (dir.exists(analysis_path)) {
+    warning(paste("The analysis folder", analysis_path, "already exists."))
+    if (!overwrite) {
+      message("Set overwrite = TRUE to delete and recreate the folder, or choose a different analyse_name.")
+      return(invisible(NULL))
+    } else {
+      unlink(analysis_path, recursive = TRUE)
+      message(paste("Existing folder", analysis_path, "deleted."))
+    }
+  }
+
+  # Create all directories inside data
+  dir.create(data_path, showWarnings = FALSE, recursive = TRUE)
+  dir.create(inventories_path, showWarnings = FALSE)
+  dir.create(sites_path, showWarnings = FALSE)
+
+  # Copy required files into data folder
+  files_to_copy <- c(
+    "forceps.setup" = "data/forceeps_init_files/forceps.setup",
+    "forceps.species" = "data/forceeps_init_files/forceps.species",
+    "retz_act.climate" = "data/forceeps_init_files/retz_act.climate"
+  )
+  for (fname in names(files_to_copy)) {
+	file.copy(
+	  from = files_to_copy[[fname]],
+	  to = file.path(analysis_path, "data", fname),
+	  overwrite = TRUE
+	)
+  }
+
+  return(data_path)
 }

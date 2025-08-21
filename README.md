@@ -154,6 +154,14 @@ Potential introduction for a Master internship:
 
 A lot of writing is still needed to explain the questions and what was done.
 
+- [x] Overall changes in code to be clearer Generate.R
+- [ ] Attention some patch still don't work (maybe no proportion of species or inexistant species, I dont know)
+- [ ] Comment parameters in generate
+
+- [ ] Overall changes in code to be clearer Import.R
+
+- [ ] Lot of changes in Results.R
+
 # Reusable code (maybe for forceeps analyses)
 
 - `utils.R` — mainly for inventory and output functions.

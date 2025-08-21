@@ -7,7 +7,9 @@
 #-------------------------------------------------------------------------------
 
 # Base path to FORCEEPS working directory
-base_path <- "C:/Capsis4/data/forceps/clementine/Test_itinerary/"
+forceeps_path = "C:/Capsis4/data/forceps/clementine/"
+analyse_name = "ParamType"
+base_path = paste0(forceeps_path, analyse_name, "/")
 
 source("R/utils/output_utils.R")
 

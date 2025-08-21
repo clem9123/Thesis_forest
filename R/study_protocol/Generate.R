@@ -1,32 +1,52 @@
-# Library ---------------------------------------------------------------------
+#    FORCEEPS simulation itineraries generation for exploration of multiscale forest functions
+#         Author: Clementine de Montgolfier (August 2025)
+#        R Version: 4.4.1 (2024-06-14) -- "Race for Your Life"
+#
+#
+# Script objective:
+# Generate 10 FORCEEPS inventories (#10 chosen to speed up exploration analyses)
+# and command file with varying itineraries (clearcut, irregular, no intervention)
+# in order to run ForCEEPS simulations and analyse multiscale dynamics.
+#-------------------------------------------------------------------------------
+
+# Base path to FORCEEPS working directory
+forceeps_path = "C:/Capsis4/data/forceps/clementine/"
+analyse_name = "Study_protocol"
+base_path = paste0(forceeps_path, analyse_name, "/")
+
+## Library and data ------------------------------------------------------------
 #------------------------------------------------------------------------------#
-library(tidyverse)
-library(sf)
-source("R/utils/inventory_utils.R")
 
-## Parameters and data ---------------------------------------------------------
-#------------------------------------------------------------------------------#
+# Load required libraries
+library(tidyverse)  # Data manipulation packages
+library(sf)         # Spatial data manipulation
+source("R/utils/inventory_utils.R")  # Utility functions for inventory generation
+source("R/utils/itinerary_utils.R")  # Utility functions for itineraries
 
-# paramètres
-
-set.seed(3400)
-
-load("data/forest_data.RData")
-
-## A METTRE DANS IMPORT DATA
-Retz <- forest_data %>%
-  as.data.frame() %>%
-  # ajouter l'age median quand il n'existe pas avec la formule
-  mutate(
-      median_age = ifelse(is.na(median_age),diamètre.mean * 2,median_age)
-  ) %>%
+# Load data
+corresponding.species <- # Correspondence table between common species names and ForCEEPS codes
+read.csv("data/corresponding_species.csv", header = TRUE, sep = ",")
+load("data/forest_data.RData") # Retz forest inventory data
+Retz <- forest_data  %>%
   filter(Structure.et.occupation.du.sol %in% c("F", "I")) %>%
-  slice_sample(n = 10) # pour le test
+  slice_sample(n = 10) # 10 patches are chosen for this test
 
-corresponding.species <-
-  read.csv("data/corresponding_species.csv", header = TRUE, sep = ",")
+# parameters
+set.seed(3400)
+seed <- 3400
+tot_simul_time = 150 # Total simulation time (years) to visualise trajectory and analyse dynamics on
+potential_species <- "17 21 31 5 23 14 18 13" # ForCEEPS parameter (list pf species that can appear on th patch)
+params <- tibble::tibble(
+  essence = c("CHS", "CHP", "HET", "CHA", "P.L"),
+  rotation_sp = c(150, 150, 100, 80, 60), # Rotation age for each species
+  ba_irregulier = c(12, 12, 16, 20, 25) # After cut basal area for irregular management
+)
+n_rep = 2 # Number of repetitions of ForCEEPS simulations for each itinerary
 
-tot_simul_time = 150
+## Set up ForCEEPS directory ---------------------------------------------------
+#------------------------------------------------------------------------------#
+
+initialise_forceeps_folder(forceeps_path, analyse_name, overwrite = TRUE)
 
 ## Generate all inventory ------------------------------------------------------
 #------------------------------------------------------------------------------#
@@ -40,153 +60,22 @@ generate_all_inventories(
   species_proportion = "fixe",
   patcharea = 1000,
   patchnumber = 1,
-  path = "C:/Capsis4/data/forceps/clementine/Test_protocole"
+  path = base_path
 )
 
-# write the command files for all
-# generate_command_files(
-Retz <- Retz
-seed <- 3400
-path <- "C:/Capsis4/data/forceps/clementine/Test_protocole"
-setup_file <- "data/forceps.setup"
-
-climate_file <- "Retz_act.climate"
-potential_species <- "17 21 31 5 23 14 18 13" # 33
-
-round_to_nearest_10 <- function(x) {
-  return(round(x / 10) * 10)
-}
-
-params <- tibble::tibble(
-  essence = c("CHS", "CHP", "HET", "CHA", "P.L"),
-  rotation_sp = c(150, 150, 100, 80, 60),
-  ba_irregulier = c(12, 12, 16, 20, 25)
-)
-
-species_proportion <- function(retz_id) {
-species_columns <- colnames(Retz)[9:23]
-  # récupérer les espèces présentes et leur proportion
-  proportions <- Retz %>%
-	filter(Identifiant.peuplement.élémentaire == retz_id) %>%
-	select(all_of(species_columns))
-
-	proportions[is.na(proportions)] <- 0
-
-  # récupérer les 4 plus importantes
-  top_species <- proportions %>%
-    summarise(across(everything(), sum)) %>%
-    pivot_longer(everything(), names_to = "species", values_to = "proportion") %>%
-    arrange(desc(proportion)) %>%
-    slice_head(n = 3) %>%
-    # proportion > 0
-    filter(proportion > 0)
-
-  # formater en forceps cut proportion
-  sp_reg <- paste0(
-    corresponding.species$speciesShortName[match(top_species$species, corresponding.species$Retz_Code)], "-", 
-    top_species$proportion
-  ) %>%
-    paste(collapse = ",")
-
-    top_species <- proportions %>%
-    summarise(across(everything(), sum)) %>%
-    pivot_longer(everything(), names_to = "species", values_to = "proportion") %>%
-    arrange(desc(proportion)) %>%
-    slice_head(n = 4) %>%
-    # proportion > 0
-    filter(proportion > 0)
-
-  sp_irreg <- paste0(
-    corresponding.species$speciesShortName[match(top_species$species, corresponding.species$Retz_Code)], "-", 
-    25 # proportion fixe pour les irréguliers
-  ) %>%
-    paste(collapse = ",")
-  
-  return(list(sp_reg, sp_irreg))
-}
-
-generate_scenario <- function(structure, essence, median_age, species_proportion) {
-  sp_irreg <- species_proportion[[2]]
-  sp_reg <- species_proportion[[1]]
-
-  # Valeurs par défaut si essence non trouvée
-  default_rotation_sp <- 100
-  default_ba_irregulier <- 20
-
-  # Récupérer les valeurs pour l'essence
-  param_row <- params %>% filter(essence == !!essence)
-  rotation_sp <- 
-    ifelse(nrow(param_row) > 0, param_row$rotation_sp, default_rotation_sp)
-  ba_irregulier <- 
-    ifelse(nrow(param_row) > 0, param_row$ba_irregulier, default_ba_irregulier)
-
-  # ClearCut scenario
-  ####################
-
-  scenario_clearCut <- ""
-  simul_time <- 0
-
-  while (simul_time < tot_simul_time) {
-    ClearcutTime <- (rotation_sp - median_age) %>%
-      round_to_nearest_10() %>%
-      max(1, .) %>%
-      min(tot_simul_time - simul_time, .)
-
-    if (ClearcutTime > 10) {
-      n <- ClearcutTime / 10 - 1
-      for (i in 1:n) {
-        scenario_clearCut <- paste0(
-          scenario_clearCut, "10_3_0.5_70%_",
-          sp_reg,
-          ";"
-        )
-      }
-    }
-
-    scenario_clearCut <- paste0(
-      scenario_clearCut,
-      "10_3_0.5_0%_FSyl-80", ";"
-    )
-
-    median_age <- 0
-    simul_time <- simul_time + ClearcutTime
-  }
-
-  # Irregular scenario
-  ####################
-
-  scenario_irregular <- ""
-  simul_time <- 0
-
-  while (simul_time < tot_simul_time) {
-    cut_time <- 5 %>% min(tot_simul_time - simul_time, .)
-    scenario_irregular <- paste0(
-      scenario_irregular,
-      cut_time, "_3_0.5_90%_",
-      sp_irreg, ";"
-    )
-    simul_time <- simul_time + cut_time
-  }
-
-  # NoCut scenario
-  ################
-
-  scenario_noCut <- paste0(tot_simul_time, "_3_0.5_0%_FSyl-80")
-  
-  return(c(scenario_clearCut, scenario_irregular, scenario_noCut))
-}
+## Generate all command files --------------------------------------------------
+#------------------------------------------------------------------------------#
 
 for (i in seq_along(Retz$Identifiant.peuplement.élémentaire)) {
   retz_id <- Retz$Identifiant.peuplement.élémentaire[i]
-  cmd_file <- file.path(path, paste0("cmd_", i, ".txt"))
+  cmd_file <- file.path(base_path, paste0("cmd_", i, ".txt"))
   write_command_file(
     output_file = cmd_file,
-    file_setup = setup_file
+    file_setup = "data/forceps.setup"
   )
-  inventory_file <- paste0("inventaires/", retz_id, ".inv")
+  inventory_file <- paste0("inventories/", retz_id, ".inv")
   site_file <- paste0("sites/", retz_id, ".site")
   scenario <- generate_scenario(
-    Retz$Structure.et.occupation.du.sol[i],
     Retz$Essence.déterminant.la.sylviculture[i],
     Retz$median_age[i],
     species_proportion(Retz$Identifiant.peuplement.élémentaire[i])
@@ -194,13 +83,13 @@ for (i in seq_along(Retz$Identifiant.peuplement.élémentaire)) {
 
 
   for (scen in scenario) {
-    for (seed_offset in 0:9) {
+    for (seed_offset in 0:n_rep) {
       current_seed <- seed + seed_offset
       write(
         paste0(
           current_seed, "\t",
           site_file, "\t",
-          climate_file, "\t",
+          "retz_act.climate", "\t", # climate file
           inventory_file, "\t",
           potential_species, "\t",
           scen

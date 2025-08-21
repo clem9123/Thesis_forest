@@ -156,9 +156,15 @@ forest_data <- forest_data %>%
 forest_data <- forest_data %>%
     select(-all_of(non_forceps_species))
 
+# Add median age when not available, use diameter mean as proxy
+forest_data <- forest_data %>%
+  mutate(
+    median_age = ifelse(is.na(median_age), diamètre.mean * 2, median_age)
+  )
+
 # Clean workspace and save processed data
 rm(list = ls()[!ls() %in% c("forest_data")])  # Keep only forest_data object
 
 # To save processed forest data if needed
 #write.csv(forest_data, file = "data/forest_data.csv", row.names = FALSE)
-#save(forest_data, file = "data/forest_data.RData")
+save(forest_data, file = "data/forest_data.RData")

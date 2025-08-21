@@ -1,20 +1,34 @@
-# Post-processing des résultats Forceps
-# Objectif : Regrouper les simulations par scénario (10 simulations par scénario)
-# et calculer les moyennes pour réduire le nombre de fichiers
+#    TITRE
+#         Author: Clementine de Montgolfier (August 2025)
+#        R Version: 4.4.1 (2024-06-14) -- "Race for Your Life"
+#
+#
+# Script objective:
+#-------------------------------------------------------------------------------
 
-# Libraries ----------------------------------------------------------------
+# Base path to FORCEEPS working directory
+forceeps_path = "C:/Capsis4/data/forceps/clementine/"
+analyse_name = "Study_protocol"
+base_path = paste0(forceeps_path, analyse_name, "/")
+
+## Library and data ------------------------------------------------------------
+#------------------------------------------------------------------------------#
+
+# Load required libraries
 library(tidyverse)
 library(fs)
-source("R/output_utils.R")
+source("R/utils/output_utils.R")
 
-# Configuration -------------------------------------------------------------
-base_path <- "C:/Capsis4/data/forceps/clementine/Test_protocole/"
-output_dir <- "output/"
+# Load data
 
-# Créer le dossier de sortie s'il n'existe pas
-if (!dir.exists(output_dir)) {
-  dir.create(output_dir, recursive = TRUE)
-}
+# parameters
+
+## Import output data ----------------------------------------------------------
+#------------------------------------------------------------------------------#
+
+## Post-processing  ----------------------------------------------------------
+# To create different scenarios from the different itineraries
+#------------------------------------------------------------------------------#
 
 # Fonction simplifiée utilisant import_output_scene ----------------------
 process_with_import_function <- function(output_type, base_path, output_dir) {
@@ -97,6 +111,11 @@ process_with_import_function <- function(output_type, base_path, output_dir) {
   return(TRUE)
 }
 
+## Post-processing  ----------------------------------------------------------
+# To create different scenarios from the different itineraries
+#------------------------------------------------------------------------------#
+
+
 # Exécution du post-traitement ---------------------------------------------
 cat("=== Début du post-traitement ===\n")
 
@@ -153,3 +172,11 @@ for (output_type in output_types) {
 }
 
 cat("\n=== Post-traitement terminé ===\n")
+
+output_type = "mean"
+
+all_data <- import_output_scene(
+  output_name = output_type,
+  base_path = base_path,
+  output_file = NULL  # On ne sauvegarde pas encore
+)
