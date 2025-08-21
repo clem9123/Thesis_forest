@@ -41,7 +41,7 @@ params <- tibble::tibble(
   rotation_sp = c(150, 150, 100, 80, 60), # Rotation age for each species
   ba_irregulier = c(12, 12, 16, 20, 25) # After cut basal area for irregular management
 )
-n_rep = 2 # Number of repetitions of ForCEEPS simulations for each itinerary
+n_rep = 1 # Number of repetitions of ForCEEPS simulations for each itinerary
 
 ## Set up ForCEEPS directory ---------------------------------------------------
 #------------------------------------------------------------------------------#
@@ -83,7 +83,7 @@ for (i in seq_along(Retz$Identifiant.peuplement.élémentaire)) {
 
 
   for (scen in scenario) {
-    for (seed_offset in 0:n_rep) {
+    for (seed_offset in 1:n_rep) {
       current_seed <- seed + seed_offset
       write(
         paste0(

@@ -22,7 +22,7 @@
 # File Structure Expected:
 # base_path/
 #   ├── output-cmd_1.txt/
-#   │   ├── Retz_act.climate_inventories_RETZ_XX_XX.inv_simulation_1productivityScene.txt
+#   │   ├── retz_act.climate_inventories_RETZ_XX_XX.inv_simulation_1productivityScene.txt
 #   │   └── [more simulation files...]
 #   ├── output-cmd_2.txt/
 #   │   └── [simulation files...]
@@ -50,9 +50,9 @@
 import_output_scene <- function(
   output_name = "productivityScene",  # Default output type to process
   base_path,                          # Required: path to directory containing output folders
-  output_file) {                      # File path for saving results (currently not implemented)
-  
-  
+  output_file                        # File path for saving results (currently not implemented)
+) {
+
   # ===== LIBRARY LOADING =====
   # Load required packages for file operations, data manipulation, and text processing
   library(fs)      # File system operations (dir_ls)
@@ -100,7 +100,6 @@ import_output_scene <- function(
 
   # ===== STEP 4: PROCESS EACH SIMULATION FILE =====
   # Loop through each simulation file and process it individually
-  # Note: Using seq_len for safer iteration (handles empty case)
   for (i in seq_len(nrow(all_sim_files))) {
     message("Processing file number: ", i, " of ", nrow(all_sim_files))
 
@@ -131,6 +130,7 @@ import_output_scene <- function(
     colnames(df) <- gsub("\\.$", "", colnames(df))     # remove last "." of colnames if there is
 
     # ===== FORMAT FOR COMPLETE FILE =====
+    # only usable if nrep == 1
     if(output_name == "complete") {
       # ===== FORMAT FOR COMPLETE FILE =====
       # Apply transformations to add diameter class and adjust date for cut events
@@ -155,47 +155,12 @@ import_output_scene <- function(
               ordered = TRUE)
     }
 
-    # ===== COMMENTED OUT: ADVANCED AGGREGATION CODE =====
-    # The following commented code shows an alternative approach for data aggregation
-    # that would group data by species and calculate summary statistics.
-    # This code is preserved for reference but not currently used.
-    
-#      required_vars <- c("date", "speciesShortName")
-#      if (!all(required_vars %in% colnames(df))) return(NULL)
-#
-#      df <- df %>% select(all_of(required_vars))
-#
-#      # Calculate species-level summaries
-#      species_summary <- df %>%
-#        group_by(date, speciesShortName) %>%
-#        summarise(
-#          mean_val = mean(.data[[variable_to_aggregate]], na.rm = TRUE),
-#          dead_total = sum(deadNumber_ha, na.rm = TRUE),
-#          .groups = "drop"
-#        ) %>%
-#        mutate(repetition = rep_idx, plot_id = plot_id)
-#
-#      # Calculate total summaries across all species
-#      total_summary <- df %>%
-#        group_by(date) %>%
-#        summarise(
-#          mean_val = sum(.data[[variable_to_aggregate]], na.rm = TRUE),
-#          dead_total = sum(deadNumber_ha, na.rm = TRUE),
-#          .groups = "drop"
-#        ) %>%
-#        mutate(speciesShortName = "Tot", repetition = rep_idx, plot_id = plot_id)
-#
-#      bind_rows(species_summary, total_summary)
-#    })
-
     # ===== COMBINE DATA =====
     # Add current file's data to the growing aggregated dataset
-    # This preserves all original data with added plot_id and scenario columns
     aggregated_data <- bind_rows(aggregated_data, df)
   }
 
   # ===== STEP 5: RETURN RESULTS =====
   # Return the complete aggregated dataset containing all processed simulation files
-  # Note: The save functionality is commented out - could be implemented later
-  return(aggregated_data)  # , file = output_file) - save functionality not implemented
+  return(aggregated_data)
 }

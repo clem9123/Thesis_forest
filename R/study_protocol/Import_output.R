@@ -10,6 +10,7 @@
 forceeps_path = "C:/Capsis4/data/forceps/clementine/"
 analyse_name = "Study_protocol"
 base_path = paste0(forceeps_path, analyse_name, "/")
+output_dir = "data/forceeps_output/"
 
 ## Library and data ------------------------------------------------------------
 #------------------------------------------------------------------------------#
@@ -51,7 +52,7 @@ process_with_import_function <- function(output_type, base_path, output_dir) {
   
   # Déterminer quel scénario (itinéraire) chaque simulation appartient
   # Scénario 1: simulations 1-10, Scénario 2: simulations 11-20, Scénario 3: simulations 21-30
-  all_data$itinerary <- ceiling(all_data$scenario_num / 10)
+  all_data$itinerary <- ceiling(all_data$scenario_num / 2)
   
   # Traiter chaque itinéraire séparément
   for (itinerary_num in 1:3) {
@@ -120,7 +121,7 @@ process_with_import_function <- function(output_type, base_path, output_dir) {
 cat("=== Début du post-traitement ===\n")
 
 # Traiter chaque type de sortie
-output_types <- c("productivityScene", "mean", "complete")
+output_types <- c("productivityScene", "mean")
 
 for (output_type in output_types) {
   cat("\n--- Traitement des fichiers", output_type, "---\n")
@@ -172,11 +173,3 @@ for (output_type in output_types) {
 }
 
 cat("\n=== Post-traitement terminé ===\n")
-
-output_type = "mean"
-
-all_data <- import_output_scene(
-  output_name = output_type,
-  base_path = base_path,
-  output_file = NULL  # On ne sauvegarde pas encore
-)

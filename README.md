@@ -147,20 +147,14 @@ base_path <- "C:/Capsis4/data/forceps/[your_user]/[study_name]/"
 
 # Study Beginning
 
+Generate convention and need to change
+
 Potential introduction for a Master internship:  
-- `Generate.R`: generate ForceEPS initialization files.  
+- `Generate.R`: generate ForceEPS initialization files.
 - `Run_forceeps.R`: run ForceEPS in parallel with the generated init files.  
-- `Post_processing.R`: import and modify data to relink each simulation to each itinerary and create different scenarios (combinations of itineraries).  
+- `Import_output.R`: import and modify data to relink each simulation to each itinerary and create different scenarios (combinations of itineraries).  For now it is useless everything is done in results
 
-A lot of writing is still needed to explain the questions and what was done.
-
-- [x] Overall changes in code to be clearer Generate.R
-- [ ] Attention some patch still don't work (maybe no proportion of species or inexistant species, I dont know)
-- [ ] Comment parameters in generate
-
-- [ ] Overall changes in code to be clearer Import.R
-
-- [ ] Lot of changes in Results.R
+- [ ] Results : Make data elsewhere and analyses here
 
 # Reusable code (maybe for forceeps analyses)
 
