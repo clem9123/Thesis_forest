@@ -9,33 +9,23 @@
 # in order to run ForCEEPS simulations and analyse multiscale dynamics.
 #-------------------------------------------------------------------------------
 
-# Base path to FORCEEPS working directory
-forceeps_path = "C:/Capsis4/data/forceps/clementine/"
-analyse_name = "Study_protocol"
-base_path = paste0(forceeps_path, analyse_name, "/")
-
-## Library and data ------------------------------------------------------------
-#------------------------------------------------------------------------------#
-
-# Load required libraries
-library(tidyverse)  # Data manipulation packages
-library(sf)         # Spatial data manipulation
-source("R/utils/inventory_utils.R")  # Utility functions for inventory generation
-source("R/utils/itinerary_utils.R")  # Utility functions for itineraries
-
-# Load data
-corresponding.species <- # Correspondence table between common species names and ForCEEPS codes
+# Correspondence table between common species names and ForCEEPS codes
+corresponding.species <- 
 read.csv("data/corresponding_species.csv", header = TRUE, sep = ",")
-load("data/forest_data.RData") # Retz forest inventory data
+
+# Load Retz forest inventory data
+load("data/forest_data.RData")
 Retz <- forest_data  %>%
   filter(Structure.et.occupation.du.sol %in% c("F", "I")) %>%
   slice_sample(n = 10) # 10 patches are chosen for this test
 
-# parameters
+# Simulation parameters
 set.seed(3400)
 seed <- 3400
-tot_simul_time = 150 # Total simulation time (years) to visualise trajectory and analyse dynamics on
-potential_species <- "17 21 31 5 23 14 18 13" # ForCEEPS parameter (list pf species that can appear on th patch)
+tot_simul_time = 150 # Total simulation time (years) to visualise trajectory and analyse dynamics
+# Potential species list in ForCEEPS format (see ForCEEPS documentation)
+potential_species <- "17 21 31 5 23 14 18 13"
+# Species-specific parameters for silvicultural management
 params <- tibble::tibble(
   essence = c("CHS", "CHP", "HET", "CHA", "P.L"),
   rotation_sp = c(150, 150, 100, 80, 60), # Rotation age for each species
@@ -51,9 +41,8 @@ initialise_forceeps_folder(forceeps_path, analyse_name, overwrite = TRUE)
 ## Generate all inventory ------------------------------------------------------
 #------------------------------------------------------------------------------#
 
-# Create a RetzId.inv and RetsId.site for every retz_id
-
-# inventories and sites
+# Create inventory and site files for every Retz patch
+# Generate inventories and sites using function from inventory_utils.R
 generate_all_inventories(
   Retz,
   distribution_types = "mean",
@@ -66,30 +55,38 @@ generate_all_inventories(
 ## Generate all command files --------------------------------------------------
 #------------------------------------------------------------------------------#
 
-for (i in seq_along(Retz$Identifiant.peuplement.élémentaire)) {
-  retz_id <- Retz$Identifiant.peuplement.élémentaire[i]
+# Generate command files for each Retz patch with different management scenarios
+for (i in seq_along(Retz$Identifiant.peuplement.elementaire)) {
+  retz_id <- Retz$Identifiant.peuplement.elementaire[i]
   cmd_file <- file.path(base_path, paste0("cmd_", i, ".txt"))
+  
+  # Write command file header (uses function from output_utils.R)
   write_command_file(
     output_file = cmd_file,
     file_setup = "data/forceps.setup"
   )
+  
+  # Define file paths for this patch
   inventory_file <- paste0("inventories/", retz_id, ".inv")
   site_file <- paste0("sites/", retz_id, ".site")
+  
+  # Generate management scenarios for this patch (uses function from itinerary_utils.R)
   scenario <- generate_scenario(
-    Retz$Essence.déterminant.la.sylviculture[i],
+    Retz$Essence.determinant.la.sylviculture[i],
     Retz$median_age[i],
-    species_proportion(Retz$Identifiant.peuplement.élémentaire[i])
+    species_proportion(Retz$Identifiant.peuplement.elementaire[i])
   )
 
-
+  # Write simulation lines for each scenario and repetition
   for (scen in scenario) {
     for (seed_offset in 1:n_rep) {
       current_seed <- seed + seed_offset
+      # Write a simulation line
       write(
         paste0(
           current_seed, "\t",
           site_file, "\t",
-          "retz_act.climate", "\t", # climate file
+          "retz_act.climate", "\t", # Climate data file for current conditions in Retz forest
           inventory_file, "\t",
           potential_species, "\t",
           scen

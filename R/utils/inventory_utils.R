@@ -1,9 +1,50 @@
-## Libraries -------------------------------------------------------------------
-#------------------------------------------------------------------------------#
-
-library(tidyr)
-library(truncnorm)
-library(dplyr)
+# ===============================================================================
+# FOREST INVENTORY SIMULATION AND FORCEEPS INTEGRATION UTILITIES
+# ===============================================================================
+#
+# Purpose: Generate and manage forest inventories for FORCEEPS forest simulation model
+# Author: Clementine de Montgolfier
+# Last Modified: 26 août 2025
+#        R Version: 4.4.1 (2024-06-14) -- "Race for Your Life"
+#
+# Description:
+# This file contains comprehensive utilities for generating forest inventories from
+# real forest data and formatting them for use with the FORCEEPS forest simulation model.
+# The utilities handle diameter distributions, species proportions, and file formatting
+# to create realistic forest stands for simulation.
+#
+# Key Features:
+# - Generate tree inventories from real forest data (Retz forest)
+# - Support multiple diameter distribution types (uniform, normal, truncated normal)
+# - Handle species proportion calculations with variation
+# - Format inventories for FORCEEPS input requirements
+# - Create command files for batch simulation runs
+# - Manage folder structure and file organization
+# - Generate uniform inventories for controlled experiments
+#
+# Main Functions:
+# - simulate_inventory_for_patch(): Generate inventory from real forest data
+# - simulate_inventory_uniforme(): Generate uniform diameter distributions
+# - format_to_forceps(): Convert inventory to FORCEEPS format
+# - generate_all_inventories(): Batch process multiple forest patches
+# - initialise_forceeps_folder(): Set up directory structure
+#
+# File Structure Created:
+# base_path/analyse_name/
+#   ├── data/
+#   │   ├── inventories/
+#   │   │   ├── RETZ_XX_XX.inv
+#   │   │   └── [more inventory files...]
+#   │   ├── sites/
+#   │   │   ├── RETZ_XX_XX.site
+#   │   │   └── [more site files...]
+#   │   ├── forceps.setup
+#   │   ├── forceps.species
+#   │   └── retz_act.climate
+#   ├── cmd_1.txt
+#   └── [more command files...]
+#
+# ===============================================================================
 
 ## Utility Functions -----------------------------------------------------------
 #------------------------------------------------------------------------------#
@@ -23,13 +64,13 @@ calculate_disk_area <- function(diameter) {
 #' @return Numeric value of mean diameter.
 generate_mean_diameter <- function(patch, distribution) {
 	switch(distribution,
-		"unif" = (patch$diamètre.min + patch$diamètre.max) / 2,
-		"normal_IR" = patch$diamètre.mean,
-		"normal_6" = patch$diamètre.mean,
-		"normal_4" = patch$diamètre.mean,
-		"mean" = patch$diamètre.mean,
-		"min" = patch$diamètre.min,
-		"max" = patch$diamètre.max,
+		"unif" = (patch$diametre.min + patch$diametre.max) / 2,
+		"normal_IR" = patch$diametre.mean,
+		"normal_6" = patch$diametre.mean,
+		"normal_4" = patch$diametre.mean,
+		"mean" = patch$diametre.mean,
+		"min" = patch$diametre.min,
+		"max" = patch$diametre.max,
 		stop("Invalid distribution")
 	)
 }
@@ -45,20 +86,20 @@ generate_mean_diameter <- function(patch, distribution) {
 #' @return Numeric vector of diameters.
 generate_diameters <- function(patch, distribution, n) {
 	switch(distribution,
-		"unif" = runif(n, min = patch$diamètre.min, max = patch$diamètre.max),
+		"unif" = runif(n, min = patch$diametre.min, max = patch$diametre.max),
 		"normal_6" = rnorm(
-            n, mean = patch$diamètre.mean,
-            sd = (patch$diamètre.max - patch$diamètre.min) / 6),
+            n, mean = patch$diametre.mean,
+            sd = (patch$diametre.max - patch$diametre.min) / 6),
 		"normal_4" = rnorm(
-            n, mean = patch$diamètre.mean,
-            sd = (patch$diamètre.max - patch$diamètre.min) / 4),
+            n, mean = patch$diametre.mean,
+            sd = (patch$diametre.max - patch$diametre.min) / 4),
 		"normal_IR" = rtruncnorm(
-            n, a = patch$diamètre.min, b = patch$diamètre.max,
-            mean = patch$diamètre.mean,
-            sd = (patch$diamètre.max - patch$diamètre.min) / 10),
-		"mean" = rep(patch$diamètre.mean, n),
-		"min" = rep(patch$diamètre.min, n),
-		"max" = rep(patch$diamètre.max, n),
+            n, a = patch$diametre.min, b = patch$diametre.max,
+            mean = patch$diametre.mean,
+            sd = (patch$diametre.max - patch$diametre.min) / 10),
+		"mean" = rep(patch$diametre.mean, n),
+		"min" = rep(patch$diametre.min, n),
+		"max" = rep(patch$diametre.max, n),
 		stop("Invalid distribution type")
 	)
 }
@@ -74,7 +115,7 @@ generate_diameters <- function(patch, distribution, n) {
 #' @return Numeric vector summing to 100 with varied proportions.
 generate_species_proportion <- function(retz_id, species_columns, variation = 10) {
 	proportions <- Retz %>%
-		filter(Identifiant.peuplement.élémentaire == retz_id) %>%
+		filter(Identifiant.peuplement.elementaire == retz_id) %>%
 		select(all_of(species_columns)) %>%
 		unlist(use.names = FALSE) %>%
 		as.numeric()
@@ -109,7 +150,7 @@ get_species_distribution <- function(n_trees, retz_id, species_columns, method =
 		proportions <- generate_species_proportion(retz_id, species_columns)
 	} else {
 		proportions <- Retz %>%
-			filter(Identifiant.peuplement.élémentaire == retz_id) %>%
+			filter(Identifiant.peuplement.elementaire == retz_id) %>%
 			select(all_of(species_columns)) %>%
 			unlist() %>%
 			as.numeric()
@@ -142,13 +183,13 @@ get_species_distribution <- function(n_trees, retz_id, species_columns, method =
 simulate_inventory_for_patch <- function(
     retz_id, distribution = "normal_6", species_proportion = "random") {
 
-	patch <- Retz %>% filter(Identifiant.peuplement.élémentaire == retz_id)
+	patch <- Retz %>% filter(Identifiant.peuplement.elementaire == retz_id)
 	species_cols <- colnames(Retz)[9:23]
 
-	if (patch$surf.terrière.moy == 0) {
+	if (patch$surf.terriere.moy == 0) {
 		return(list(
 			inventory = data.frame(
-                species = character(), diamètre = numeric(), age = numeric()),
+                species = character(), diametre = numeric(), age = numeric()),
 			RUM = patch$RUM
 		))
 	}
@@ -159,13 +200,13 @@ simulate_inventory_for_patch <- function(
 
 	mean_diam <- generate_mean_diameter(patch, distribution) / 100
 	basal_area_per_tree <- calculate_disk_area(mean_diam)
-	n_trees <- round((patch$surf.terrière.moy / basal_area_per_tree) / 10)
+	n_trees <- round((patch$surf.terriere.moy / basal_area_per_tree) / 10)
 
 	diameters <- generate_diameters(patch, distribution, n_trees)
 	species <- get_species_distribution(n_trees, retz_id, species_cols, species_proportion)
 
-    age <- if (!is.na(patch$Age.réel.en.2010)) {
-        patch$Age.réel.en.2010
+    age <- if (!is.na(patch$Age.reel.en.2010)) {
+        patch$Age.reel.en.2010
     } else if (!is.na(patch$median_age)) {
         round(patch$median_age)
     } else {
@@ -174,7 +215,7 @@ simulate_inventory_for_patch <- function(
 
 	inventory <- data.frame(
 		species = species,
-		diamètre = diameters,
+		diametre = diameters,
 		age = age
 	)
 
@@ -195,15 +236,15 @@ simulate_inventory_for_patch <- function(
 #' @param diam_max Numeric. Maximum diameter in cm.
 #' @param species Character. Species code.
 #' @param age Numeric. Age of trees.
-#' @return Data frame with inventory (species, diamètre, age).
+#' @return Data frame with inventory (species, diametre, age).
 simulate_inventory_uniforme <- function(n_trees = 20, diam_min = 0, diam_max = 80, species = "FSyl", age = 10) {
-	# Générer des diamètres uniformément répartis
+	# Generer des diametres uniformement repartis
 	diameters <- seq(diam_min, diam_max, length.out = n_trees)
 	
-	# Créer le data.frame d'inventaire
+	# Creer le data.frame d'inventaire
 	inventory <- data.frame(
 		species = species,
-		diamètre = diameters,
+		diametre = diameters,
 		age = age
 	)
 	
@@ -226,7 +267,7 @@ format_to_forceps <- function(inventory, patch_area, patchId = 1) {
 		mutate(
 			patchId = patchId,
 			speciesId = Forceps_Code,
-			dbh = round(diamètre, 1),
+			dbh = round(diametre, 1),
 			crownA1 = 0.1,
 			dbhIncrement = 0.1,
 			slowGrowthIndex = 0,
@@ -251,7 +292,7 @@ write_forceps_inventory <- function(inventory, output_file, patch_area = 1000, p
 		paste0("inventoryPatchN = ", patch_number),
 		paste0("inventoryPatchArea = ", patch_area),
 		"",
-		"#seed\tretz_id\ttreeId\tspeciesId\tage(years)\tdbh(cm)\tcrownA1[0,1]\tdbhIncrement(cm)\tslowGrowthIndex(0,1)"
+		"#patch_id\ttreeId\tspeciesId\tage(years)\tdbh(cm)\tcrownA1[0,1]\tdbhIncrement(cm)\tslowGrowthIndex(0,1)"
 	), con = output_file)
 
 	write.table(
@@ -317,7 +358,7 @@ update_forceps_parameters <- function(filepath, updates = list(), output_path = 
 #' @return NULL. Writes files to specified path.
 generate_all_inventories <- function(Retz, distribution_types, species_proportion, patcharea, patchnumber, path) {
     for (i in 1:nrow(Retz)) {
-        ligne <- Retz$Identifiant.peuplement.élémentaire[i]
+        ligne <- Retz$Identifiant.peuplement.elementaire[i]
         
         # Simulate inventory
         results <- simulate_inventory_for_patch(ligne, distribution_types, species_proportion)
@@ -357,8 +398,8 @@ generate_all_inventories <- function(Retz, distribution_types, species_proportio
 
 # old function with separation by file
 generate_command_files <- function(Retz, n_files, seed, path, setup_file, climate_file, potential_species, scenario) {
-	retz_split <- split(Retz$Identifiant.peuplement.élémentaire, 
-						cut(seq_along(Retz$Identifiant.peuplement.élémentaire),
+	retz_split <- split(Retz$Identifiant.peuplement.elementaire, 
+						cut(seq_along(Retz$Identifiant.peuplement.elementaire),
 						n_files, labels = FALSE))
 	for (file_idx in seq_along(retz_split)) {
 		cmd_file <- file.path(path, paste0("cmd_", file_idx, ".txt"))
@@ -387,8 +428,8 @@ generate_command_files <- function(Retz, n_files, seed, path, setup_file, climat
 
 # new function with no separation by inventory
 generate_command_files <- function(Retz, seed, path, setup_file, climate_file, potential_species, scenario) {
-	for (i in seq_along(Retz$Identifiant.peuplement.élémentaire)) {
-		ligne <- Retz$Identifiant.peuplement.élémentaire[i]
+	for (i in seq_along(Retz$Identifiant.peuplement.elementaire)) {
+		ligne <- Retz$Identifiant.peuplement.elementaire[i]
 		cmd_file <- file.path(path, paste0("cmd_", i, ".txt"))
 		write_command_file(
 			output_file = cmd_file,
@@ -426,13 +467,13 @@ initialise_forceeps_folder <- function(base_path, analyse_name, overwrite = FALS
   sites_path <- file.path(data_path, "sites")
 
   if (dir.exists(analysis_path)) {
-    warning(paste("The analysis folder", analysis_path, "already exists."))
+    message(paste("The analysis folder", analysis_path, "already exists."))
     if (!overwrite) {
-      message("Set overwrite = TRUE to delete and recreate the folder, or choose a different analyse_name.")
+      warning("Set overwrite = TRUE to delete and recreate the folder, or choose a different analyse_name.")
       return(invisible(NULL))
     } else {
       unlink(analysis_path, recursive = TRUE)
-      message(paste("Existing folder", analysis_path, "deleted."))
+      warning(paste("Existing folder", analysis_path, "deleted."))
     }
   }
 

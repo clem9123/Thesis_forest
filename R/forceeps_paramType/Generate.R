@@ -9,23 +9,9 @@
 # in order to run ForCEEPS simulations and analyse paramType effects.
 #-------------------------------------------------------------------------------
 
-# Base path to FORCEEPS working directory
-forceeps_path = "C:/Capsis4/data/forceps/clementine/"
-analyse_name = "ParamType"
-base_path = paste0(forceeps_path, analyse_name, "/")
-
-## Library and data ------------------------------------------------------------
-#------------------------------------------------------------------------------#
-
-# Load required libraries
-library(tidyverse)  # Data manipulation packages
-source("R/utils/inventory_utils.R")  # Utility functions for inventories
-source("R/utils/itinerary_utils.R")  # Utility functions for itineraries
-
 # Correspondence table between common species names and ForCEEPS codes
 corresponding.species <- 
 read.csv("data/corresponding_species.csv", header = TRUE, sep = ",")
-
 
 # Name of the inventory file to generate (name convention RETZ_#_#), even if not extracted from Retz data here
 inventory_file <- "inventories/RETZ_0_0.inv"
@@ -41,6 +27,11 @@ potential_species <- "17"
 
 initialise_forceeps_folder(forceeps_path, analyse_name, overwrite = TRUE)
 
+# add site file in the data/site folder under the name site_file
+file.copy("data/forceeps_init_files/forceps.site",
+          file.path(base_path, "data", site_file),
+          overwrite = TRUE)
+
 ## Inventory -------------------------------------------------------------------
 #------------------------------------------------------------------------------#
 
@@ -51,7 +42,7 @@ inventory <- simulate_inventory_uniforme(
   n_trees = 20,
   diam_min = 0,
   diam_max = 80,
-  species = "FSyl",
+  species = "HET",
   age = 10
 )
 

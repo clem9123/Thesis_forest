@@ -1,6 +1,6 @@
 ---
 title: "Analysis of the effect of the parameter: `param_type` in Forceeps"
-author: "Clémentine de Montgolfier"
+author: "Clementine de Montgolfier"
 date: "`r format(Sys.Date(), '%Y-%m-%d')`"
 output: pdf_document
 ---
@@ -8,15 +8,6 @@ output: pdf_document
 ```{r options, include=FALSE}
 # set working dir for all chunks to ..
 knitr::opts_knit$set(root.dir = "../../")
-```
-
-```{r, message=FALSE, warning=FALSE}
-library(tidyverse)
-library(fs)
-library(gridExtra)
-library(grid)
-library(knitr)
-library(patchwork)
 opts_chunk$set(echo=FALSE)
 ```
 
@@ -210,7 +201,7 @@ ggplot(data_mean) +
         x = "Date",
         y = "Mean density (trees/ha)"
     ) +
-    # ecrire la légende en plus grand
+    # ecrire la legende en plus grand
     theme(legend.text = element_text(size = 12), legend.title = element_text(size = 14))
 
 # Coefficient de gini

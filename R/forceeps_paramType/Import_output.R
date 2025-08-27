@@ -6,13 +6,6 @@
 # Script objective: Import and process FORCEEPS output files for paramType parameter impact analysis and create a comprehensive dataset (paramType_complete.RData) for analyses
 #-------------------------------------------------------------------------------
 
-# Base path to FORCEEPS working directory
-forceeps_path = "C:/Capsis4/data/forceps/clementine/"
-analyse_name = "ParamType"
-base_path = paste0(forceeps_path, analyse_name, "/")
-
-source("R/utils/output_utils.R")
-
 # Use the function from output_utils.R to read "complete" ForCEEPS output files
 data_new <- import_output_scene(
   output_name = "complete",

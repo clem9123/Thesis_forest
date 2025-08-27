@@ -1,6 +1,6 @@
 ---
 title: "Determining Optimal Simulation Repetition for Forest Stand Modeling: A Replication Analysis of the FORCEPS Forest Growth Model"
-author: "Clémentine de Montgolfier"
+author: "Clementine de Montgolfier"
 date: "`r format(Sys.Date(), '%Y-%m-%d')`"
 output: pdf_document
 ---
@@ -18,14 +18,8 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r libraries-and-data, message=FALSE, warning=FALSE}
-library(tidyverse)
-library(fs)
-library(gridExtra)
-library(grid)
-library(knitr)
-library(patchwork)
-load("output/repetition_mean.RData") # all_data
+```{r data, message=FALSE, warning=FALSE}
+load("data/forceeps_output/repetition_mean.RData") # all_data
 ```
 
 # Abstract
@@ -672,7 +666,7 @@ Working on productivity analysis to:
 ### Species-Level Productivity Analysis
 
 ```{r productivity-data-loading}
-load("output/repetition_productivityScene.RData") # global_df
+load("data/forceeps_output/repetition_productivityScene.RData") # global_df
 ```
 
 ```{r species-productivity-analysis, message=FALSE, warning=FALSE, fig.width=12, fig.height=16, fig.cap="Figure 11: Species-level productivity analysis showing coefficient of variation and error patterns across different simulation group sizes for individual tree species.", fig.height=10}

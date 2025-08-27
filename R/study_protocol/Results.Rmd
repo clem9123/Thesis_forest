@@ -2,12 +2,12 @@
 title: "Multi-scale Analysis of Forest Management Scenarios: Testing Indicators Forest Management Scenarios Overview"
 author: "Clementine de Montgolfier"
 date: "`r format(Sys.Date(), '%Y-%m-%d')`"
-output: html_document
+output: pdf_document
 ---
 
 # Note on simulation protocol and convention chosen
 
-I created 1 command file for each patche
+I created 1 command file for each patch
 Inside I have one line for each itinerary
 
 With Brieux naming convention : each line get a unique identifier simply simulation_# from 1 to number of itineraries ran.
@@ -18,7 +18,8 @@ To add repetitions (see forceeps_replicates analyses) there are multiple possibi
 
 - [ ] Implement a system to repeat simulations
 
-```{r options}
+```{r options, echo = FALSE, warning = FALSE, message = FALSE}
+# Global document options configuration
 # Set working directory for all chunks to parent directory
 knitr::opts_knit$set(root.dir = "../../")
 # Set global chunk options
@@ -26,30 +27,27 @@ knitr::opts_chunk$set(
   echo = FALSE,
   warning = FALSE,
   message = FALSE,
-  fig.width = 8,
-  fig.height = 8,
+  fig.width = 6,
+  fig.height = 5,
+  out.width = "100%",
   fig.align = "center"
 )
 ```
 
 ```{r libraries-and-data, message=FALSE, warning=FALSE}
-library(tidyverse)
-library(fs)
-library(gridExtra)
-library(grid)
-library(knitr)
-library(patchwork)
-library(sf)
 source("R/utils/output_utils.R")
 ```
 
-```{r, message = FALSE, warning = FALSE, echo = FALSE}
+```{r import-forceeps-data, message = FALSE, warning = FALSE, echo = FALSE}
+# Import FORCEEPS simulation data
+# Loading productivity data by species and scenario
 productivity_scene <- import_output_scene(
   output_name = "productivityScene",
   base_path = "C:/Capsis4/data/forceps/clementine/Study_protocol/",
   output_file = "data/forceeps_output/protocole_productivityScene.RData"
 )
 
+# Loading mean data by scenario
 mean_scene <- import_output_scene(
   output_name = "mean",
   base_path = "C:/Capsis4/data/forceps/clementine/Study_protocol/",
@@ -59,38 +57,44 @@ mean_scene <- import_output_scene(
 
 # Initial Stand Conditions
 
-```{r}
-# Retrieve plot IDs
+```{r initial-conditions-table}
+# Creating initial conditions table for plots
+# Extracting plot IDs used in simulations
 plots_id <- productivity_scene %>%
   pull(plot_id) %>%
   unique()
 
-# Select plot IDs from forest data
+# Loading and filtering forest data for selected plots
 load("data/forest_data.RData")
 forest_data %>% as.data.frame() %>% 
-  filter(Identifiant.peuplement.élémentaire %in% plots_id) %>%
-  select(Identifiant.peuplement.élémentaire, surface.retenue, Type.de.peuplement, Essence.déterminant.la.sylviculture, Essence.dominante.1, Essence.dominante.2, Structure.et.occupation.du.sol, surf.terrière.moy, diamètre.mean, median_age) %>%
-  # Display as formatted table
+  filter(Identifiant.peuplement.elementaire %in% plots_id) %>%
+  select(surface.retenue, Type.de.peuplement, Essence.determinant.la.sylviculture, Essence.dominante.1, Essence.dominante.2, Structure.et.occupation.du.sol, surf.terriere.moy, diametre.mean, median_age) %>%
+  # Display formatted table
   knitr::kable(
-    caption = "Initial stand conditions for selected plots",
-    col.names = c("Plot ID", "Surface (ha)", "Stand Type", "Silviculture Species", "Dominant Species 1", "Dominant Species 2", "Structure & Soil Cover", "Basal Area (m²/ha)", "Mean DBH (cm)", "Median Age (years)")
+    col.names = c("Surface (ha)", "Stand Type", "Silviculture Species", "Dominant Species 1", "Dominant Species 2", "Structure & Soil Cover", "Basal Area (m²/ha)", "Mean DBH (cm)", "Median Age (years)")
   )
 ```
 
-```{r}
+```{r initial-basal-area-plot}
+# Initial basal area plot by plot and species (2021)
+### Figure 1: Initial basal area - verification of data presence for all plots
 productivity_scene %>%
   filter(date == "2021") %>%
   group_by(plot_id, speciesShortName) %>%
-  summarise(adultTreeBasalArea = sum(adultTreeBasalArea, na.rm = TRUE)) %>%
+  summarise(adultTreeBasalArea = sum(adultTreeBasalArea, na.rm = TRUE), .groups = "drop") %>%
+  # Filter null values to identify plots without basal area
+  filter(adultTreeBasalArea > 0) %>%
   ggplot(aes(x = plot_id, y = adultTreeBasalArea, fill = speciesShortName)) +
   geom_bar(stat = "identity", position = "stack") +
   labs(
     title = "Initial Basal Area by Plot and Species (2021)",
+    subtitle = "Only plots with basal area > 0 are shown",
     x = "Plot ID",
     y = "Basal Area (m²/ha)",
     fill = "Species"
   ) +
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 The table below summarizes the diversity of the selected plots in terms of stand type and dominant species. This highlights the current selection's limited heterogeneity, suggesting the need to include a broader range of patches and avoid relying solely on random selection to ensure a more representative sample. (See l.32 in `Generate.R`)
@@ -113,22 +117,27 @@ The study evaluates three distinct silvicultural strategies:
 - **Continuous cover forestry** *(simulation2)*
   - Partial cutting every 5 years removing 10% of volume (cutting type 0.5)
   - Targeting equal (25%) composition of the four (or less if not found) main species
+  - **Note**: Harvesting only occurs when exploitability thresholds are met
 
 - **Natural evolution** *(simulation3)*
   - No management intervention
   - Natural forest dynamics without human interference
 
-```{r}
+```{r productivity-evolution-plot}
+# Forest productivity evolution by plot, species and scenario
+### Figure 2: Temporal evolution of basal area by scenario
 ggplot(productivity_scene) +
   geom_line(aes(x = date, y = adultTreeBasalArea, color = speciesShortName)) +
   facet_grid(plot_id ~ scenario) +
   labs(
     title = "Forest Productivity by Plot and Species",
+    subtitle = "Basal area evolution over time across management scenarios",
     x = "Year",
     y = "Basal Area (m²/ha)",
     color = "Species"
   ) +
-  theme_minimal()
+  theme_minimal() +
+  theme(strip.text = element_text(size = 8))
 ```
 
 *Note: The decline in basal area observed in simulation 3 (natural evolution) likely results from natural mortality, as the management strategy is set to no intervention (150_3_0.5_0%_FSyl-80).*
@@ -143,7 +152,9 @@ Over the 80-year simulation period, we calculate the following indicators:
 
 - [ ] Work is needed to analyse structural diversity (either find a better forCEEPS output file or analyse the complete output file)
 
-```{r}
+```{r filter-simulation-period}
+# Filter simulation period until 2100
+# Limit data to period of interest for analysis
 productivity_scene <- productivity_scene %>%
   filter(date <= "2100")
 
@@ -151,7 +162,8 @@ mean_scene <- mean_scene %>%
   filter(date <= "2100")
 ```
 
-```{r}
+```{r calculate-indicators}
+# Calculate plot-level indicators
 # 1. Calculate Hill diversity indices
 div <- productivity_scene %>%
   filter(adultTreeNumber_ha > 0) %>%
@@ -178,11 +190,11 @@ mean_scene1 <- mean_scene %>%
     .groups = "drop"
   )
 
-# 3. Biomass by species
+# 3. Prepare biomass data by species
 biomasse_par_espece <- productivity_scene %>%
   mutate(type = "By species")
 
-# 4. Total biomass by plot
+# 4. Calculate total biomass by plot
 biomasse_totale <- productivity_scene %>%
   group_by(plot_id, date, scenario) %>%
   summarise(
@@ -202,62 +214,99 @@ final_table <- biomasse_all %>%
   left_join(div, by = c("plot_id", "date", "scenario")) %>%
   left_join(mean_scene1, by = c("plot_id", "date", "scenario"))
 ```
+final_table <- biomasse_all %>%
+  left_join(div, by = c("plot_id", "date", "scenario")) %>%
+  left_join(mean_scene1, by = c("plot_id", "date", "scenario"))
+```
 
-```{r}
+```{r plot-level-visualizations}
+# Create plot-level visualizations
+### Figure 3: Harvested wood volume - verification of exploitability thresholds
 p_volume <- 
   ggplot(final_table,
          aes(x = date, y = extracted_volume_m3_ha, color = scenario)) +
   facet_wrap(~plot_id) +
-  geom_line() +
+  geom_line(size = 0.8) +
   labs(
     title = "Harvested Wood Volume by Plot",
+    subtitle = "Note: Absence of regular harvesting may indicate exploitability thresholds",
     x = "Year",
     y = "Extracted Volume (m³/ha)",
-    color = "Scenario"
+    color = "Management Scenario"
   ) +
   theme_minimal()
 
+# Standing biomass plot
 p_ba <- 
   ggplot(final_table,
          aes(x = date, y = adultTreeBasalArea,
              color = speciesShortName, linetype = type)) +
-  geom_line() +
+  geom_line(size = 0.6) +
   facet_grid(plot_id ~ scenario) +
   labs(
     title = "Standing Biomass by Plot, Species, and Total",
+    subtitle = "Evolution of basal area over time",
     x = "Year",
     y = "Standing Biomass (m²/ha)",
     color = "Species",
-    linetype = "Type"
+    linetype = "Aggregation Type",
+    caption = "Solid lines show individual species, dashed lines show total biomass"
   ) +
-  theme_minimal()
+  theme_minimal() +
+  theme(strip.text = element_text(size = 7))
 
-# Different color for each Hill indicator (0, 1, 2)
+# Diversity plots with distinct colors for each Hill index
 p_diversity <- ggplot(final_table, aes(x = date)) +
-  geom_line(aes(y = hill_0), color = "blue") +
-  geom_line(aes(y = hill_1), color = "green") +
-  geom_line(aes(y = hill_2), color = "red") +
+  geom_line(aes(y = hill_0, color = "Hill 0 (Richness)"), size = 0.8) +
+  geom_line(aes(y = hill_1, color = "Hill 1 (Shannon)"), size = 0.8) +
+  geom_line(aes(y = hill_2, color = "Hill 2 (Simpson)"), size = 0.8) +
   facet_grid(plot_id ~ scenario) +
   labs(
-    title = "Diversity Indices (Hill 0: Blue, Hill 1: Green, Hill 2: Red)",
+    title = "Diversity Indices Evolution",
+    subtitle = "Hill numbers representing different aspects of diversity",
     x = "Year",
-    y = "Diversity Index"
+    y = "Diversity Index Value",
+    color = "Diversity Index",
+    caption = "Hill 0 = Species richness, Hill 1 = Shannon diversity, Hill 2 = Simpson diversity"
   ) +
-  theme_minimal()
+  scale_color_manual(values = c("Hill 0 (Richness)" = "blue", 
+                                "Hill 1 (Shannon)" = "green", 
+                                "Hill 2 (Simpson)" = "red")) +
+  theme_minimal() +
+  theme(strip.text = element_text(size = 7))
 ```
 
-```{r, fig.height=20}
-p_volume + p_ba + p_diversity +
-  plot_layout(ncol = 1)
+```{r plot-level-harvested-volume}
+p_volume
+```
+
+```{r plot-level-basal_area}
+p_ba
+```
+
+```{r plot-level-diversity}
+p_diversity
 ```
 
 # Global Indicators
 
+## Definition of Local vs Global Diversity
+
+Before presenting the global indicators, it's important to clarify the difference between local and global diversity measures:
+
+- **Local diversity (Hill local)**: Average diversity calculated within each individual plot, then averaged across all plots in a scenario. This represents the typical diversity found in a single forest stand.
+
+- **Global diversity (Hill global)**: Diversity calculated by pooling all species abundances across all plots in a scenario before computing the diversity index. This represents the overall landscape-level diversity.
+
+The relationship between local and global diversity provides insights into beta diversity (turnover between plots). When global diversity is higher than local diversity, it indicates high species turnover between plots.
+
 To create scenarios I combined different itineraries together.  
 
-To be able to conclude on different proportions effect and to take into account that the dynamic of one scenario can depend on which plot were chosen I repeated each scenarios 10 time. Exemple : for half clearcut, half no management, I randomly selected half of the plots for each itinerary and repeated this process 10 times to capture variability in the results.
+To be able to conclude on different proportions effect and to take into account that the dynamic of one scenario can depend on which plot were chosen I repeated each scenarios 10 time. Example: for half clearcut, half no management, I randomly selected half of the plots for each itinerary and repeated this process 10 times to capture variability in the results.
 
-```{r}
+```{r scenario-generation-function}
+# Function for generating mixed scenarios with repetitions
+# This function allows creating combined scenarios with random variation of plots
 generate_scenario <- function(mean_scene,
                               productivity_scene,
                               itineraries, proportions,
@@ -274,14 +323,14 @@ generate_scenario <- function(mean_scene,
     # Get all distinct plots
     all_plots <- unique(mean_scene$plot_id)
 
-    # Shuffle plots to randomize
+    # Random shuffle of plots
     shuffled_plots <- sample(all_plots)
 
     # Calculate number of plots per itinerary according to proportions
     n_plots <- length(all_plots)
     n_per_itin <- round(proportions * n_plots)
 
-    # Adjust if sum is not exactly equal (due to rounding)
+    # Adjustment if sum is not exactly equal (due to rounding)
     diff_plots <- n_plots - sum(n_per_itin)
     if (diff_plots != 0) {
       n_per_itin[1] <- n_per_itin[1] + diff_plots
@@ -327,7 +376,9 @@ generate_scenario <- function(mean_scene,
 }
 ```
 
-```{r}
+```{r indicator-computation-functions}
+# Functions for computing mean and diversity indicators
+# Function to calculate mean indicators (volume, basal area)
 compute_mean_indicators <- function(mean_scene) {
   mean_scene %>%
     group_by(scenario, date, plot_id, rep) %>%
@@ -342,15 +393,15 @@ compute_mean_indicators <- function(mean_scene) {
       totalBasalAream2_ha = mean(totalBasalAream2_ha, na.rm = TRUE),
       .groups = "drop_last"
     ) %>%
-    group_by(scenario, rep) %>% # grouper par scénario et répétition
-    arrange(date, .by_group = TRUE) %>% # trier par date dans chaque groupe
-    mutate(cumul_volume = cumsum(extracted_volume_m3_ha)) %>% # cumul dans l'ordre
+    group_by(scenario, rep) %>% # group by scenario and repetition
+    arrange(date, .by_group = TRUE) %>% # sort by date within each group
+    mutate(cumul_volume = cumsum(extracted_volume_m3_ha)) %>% # cumulative sum in order
     ungroup()
 }
 
-
+# Function to calculate local and global diversity indicators
 compute_diversity_indicators <- function(productivity_scene) {
-  # Local diversity
+  # Local diversity: average of diversities calculated by plot
   local_div <- productivity_scene %>%
     filter(adultTreeNumber_ha > 0) %>%
     group_by(plot_id, date, scenario, rep) %>%
@@ -372,7 +423,7 @@ compute_diversity_indicators <- function(productivity_scene) {
       .groups = "drop"
     )
 
-  # Global diversity
+  # Global diversity: diversity calculated on all plots combined
   global_div <- productivity_scene %>%
     filter(adultTreeNumber_ha > 0) %>%
     group_by(scenario, date, rep, speciesShortName) %>%
@@ -389,7 +440,7 @@ compute_diversity_indicators <- function(productivity_scene) {
       .groups = "drop"
     )
 
-  # Merge both
+  # Merge both diversity types
   full_div <- local_div %>%
     left_join(global_div, by = c("scenario", "date", "rep"))
 
@@ -397,8 +448,9 @@ compute_diversity_indicators <- function(productivity_scene) {
 }
 ```
 
-```{r}
-# Define homogeneous and mixed scenarios
+```{r scenario-definitions}
+# Definition of homogeneous and mixed scenarios
+# Configuration of different forest management scenarios
 scenario_mix_list <- list(
   clear_cut        = list(itin = c("clear_cut"), props = c(1)),
   continuous_cover = list(itin = c("continuous_cover"), props = c(1)),
@@ -409,7 +461,7 @@ scenario_mix_list <- list(
   mix_all          = list(itin = c("clear_cut", "continuous_cover", "natural_evolution"), props = c(0.4, 0.3, 0.3))
 )
 
-# Name mapping
+# Mapping between itinerary names and simulation identifiers
 itineraries_map <- list(
   clear_cut         = "simulation_1",
   continuous_cover  = "simulation_2", 
@@ -417,7 +469,9 @@ itineraries_map <- list(
 )
 ```
 
-```{r}
+```{r generate-all-scenarios}
+# Generate all scenarios with their repetitions
+# Loop for creating homogeneous and mixed scenarios
 all_mean_scene <- list()
 all_prod_scene <- list()
 
@@ -461,7 +515,7 @@ for (scenario_name in names(scenario_mix_list)) {
 combined_mean <- bind_rows(all_mean_scene)
 combined_prod <- bind_rows(all_prod_scene)
 
-# Add group_by(rep) in indicator calculation functions
+# Calculate indicators with grouping by repetition
 df_mean <- compute_mean_indicators(combined_mean) %>%
   group_by(scenario, date, rep) %>%
   summarise_all(first) %>% # or other appropriate aggregation
@@ -476,73 +530,84 @@ final_df <- left_join(df_mean, df_div, by = c("scenario", "date", "rep"))
 ```
 
 
-```{r}
+```{r global-indicators-plots}
+# Create global indicators plots
+### Figure 5: Temporal evolution of global indicators
 p_vol <- ggplot(final_df, aes(x = date, y = cumul_volume, color = scenario)) +
-  geom_line() +
+  geom_line(size = 0.4) +
   labs(
-    title = "Cumulative Harvested Volume by Scenario",
-    x = "Year", y = "Volume (m³/ha)"
+    title = "Cumulative Harvested Volume",
+    x = "Year", 
+    y = "Volume (m³/ha)",
+    color = "Management Scenario"
   ) +
   theme_minimal()
 
 p_div_global <- ggplot(final_df, aes(x = date, y = hill_1_global, color = scenario)) +
-  geom_line() +
+  geom_line(size = 0.4) +
   labs(
     title = "Global Shannon Diversity (Hill 1)",
-    x = "Year", y = "Hill 1"
+    x = "Year", 
+    y = "Hill 1 Global",
+    color = "Management Scenario"
   ) +
   theme_minimal()
 
 p_div_local <- ggplot(final_df, aes(x = date, y = hill_1_local, color = scenario)) +
-  geom_line() +
+  geom_line(size = 0.4) +
   labs(
     title = "Local Shannon Diversity (Hill 1)",
-    x = "Year", y = "Hill 1"
+    x = "Year", 
+    y = "Hill 1 Local",
+    color = "Management Scenario"
   ) +
   theme_minimal()
 
 p_ba <- ggplot(final_df, aes(x = date, y = totalBasalAream2_ha, color = scenario)) +
-  geom_line() +
+  geom_line(size = 0.4) +
   labs(
     title = "Basal Area",
-    x = "Year", y = "Basal Area (m²/ha)"
+    x = "Year", 
+    y = "Basal Area (m²/ha)",
+    color = "Management Scenario"
   ) +
   theme_minimal()
 ```
 
-```{r}
+```{r combined-global-indicators, fig.height = 8}
+# Combined display of global indicators
+### Figure 6: Overview of global indicators by scenario
 (p_vol + p_ba) / (p_div_global + p_div_local) +
-  plot_layout(ncol = 1) +
-  plot_annotation(title = "Global Indicators by Scenario and Replication")
+  plot_layout(ncol = 1, guides = "collect") &
+  theme(legend.position = "bottom")
 ```
 
 
-```{r}
-p_div_global <- ggplot(final_df %>% filter(scenario == "clear_cut"), aes(x = date, y = hill_1_global, color = scenario)) +
-  geom_line() +
-  labs(
-    title = "Global Shannon Diversity (Hill 1)",
-    x = "Year", y = "Hill 1"
-  ) +
-  theme_minimal()
+```{r clear-cut-diversity-focus, fig.height = 4}
+# Focus on diversity for clear-cut scenario
+### Figure 7: Local vs Global Shannon Diversity for clear-cut management
+final_df_cc <- final_df %>% filter(scenario == "clear_cut")
 
-p_div_local <- ggplot(final_df %>% filter(scenario == "clear_cut"), aes(x = date, y = hill_1_local, color = scenario)) +
-  geom_line() +
+ggplot(final_df_cc, aes(x = date)) +
+  geom_line(aes(y = hill_1_local, color = "Local"), size = 0.8) +
+  geom_line(aes(y = hill_1_global, color = "Global"), size = 0.8) +
   labs(
-    title = "Local Shannon Diversity (Hill 1)",
-    x = "Year", y = "Hill 1"
+    title = "Shannon Diversity (Hill 1) for Clear-cut Management",
+    x = "Year",
+    y = "Hill 1 Value",
+    color = "Diversity Type"
   ) +
+  scale_color_manual(values = c("Local" = "blue", "Global" = "red")) +
   theme_minimal()
-
-p_div_local + p_div_global +
-  plot_layout(ncol = 1) +
-  plot_annotation(title = "Shannon Diversity (Hill 1) for Clear-cut Management")
 ```
 
 
 # Relationships Between Global Indicators
 
-```{r}
+```{r aggregate-final-metrics}
+# Final metrics aggregation by scenario and repetition
+# Calculate mean values over simulation period (timing: average over 80 years)
+### Figure 9: Metrics calculated as average over complete simulation period
 aggregated <- final_df %>%
   group_by(scenario, rep) %>%
   summarise(
@@ -550,66 +615,65 @@ aggregated <- final_df %>%
     mean_totalBasalAream2_ha = mean(totalBasalAream2_ha, na.rm = TRUE),
     mean_hill_1_global = mean(hill_1_global, na.rm = TRUE),
     mean_hill_1_local = mean(hill_1_local, na.rm = TRUE),
+    .groups = "drop"
   )
 ```
 
-```{r}
+```{r relationships-plots}
+# Plots of relationships between global indicators
+### Figure 8: Relationships between different global indicators
 p_div_local_global <- ggplot(aggregated, aes(x = mean_hill_1_global, y = mean_hill_1_local, color = scenario)) +
-  geom_point() +
-  # The line y = x
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey") +
+  geom_point(size = 2, alpha = 0.7) +
+  # The y = x line to identify equality between local and global diversity
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey50", size = 0.8) +
   labs(
-    title = "Relationship Between Global and Local Diversity",
-    x = "Hill 1 Global", y = "Hill 1 Local"
+    title = "Global vs Local Diversity",
+    x = "Hill 1 Global", 
+    y = "Hill 1 Local",
+    color = "Management Scenario"
   ) +
-  theme_minimal() +
-  theme(legend.position = "none")
+  theme_minimal()
 
 p_div_vol <- ggplot(aggregated, aes(x = cumul_volume, y = mean_hill_1_global, color = scenario)) +
-  geom_point() +
+  geom_point(size = 2, alpha = 0.7) +
   labs(
-    title = "Relationship Between Harvested Volume and Global Diversity",
-    x = "Cumulative Volume (m³/ha)", y = "Hill 1 Global"
+    title = "Harvested Volume vs Global Diversity",
+    x = "Cumulative Volume (m³/ha)", 
+    y = "Hill 1 Global",
+    color = "Management Scenario"
   ) +
-  theme_minimal() +
-  theme(legend.position = "none")
+  theme_minimal()
 
 p_vol_ba <- ggplot(aggregated, aes(x = cumul_volume, y = mean_totalBasalAream2_ha, color = scenario)) +
-  geom_point() +
+  geom_point(size = 2, alpha = 0.7) +
   labs(
-    title = "Relationship Between Harvested Volume and Basal Area",
-    x = "Cumulative Volume (m³/ha)", y = "Basal Area (m²/ha)"
+    title = "Harvested Volume vs Basal Area",
+    x = "Cumulative Volume (m³/ha)", 
+    y = "Mean Basal Area (m²/ha)",
+    color = "Management Scenario"
   ) +
-  theme_minimal() +
-  theme(legend.position = "none")
+  theme_minimal()
 
 p_div_ba <- ggplot(aggregated, aes(x = mean_hill_1_global, y = mean_totalBasalAream2_ha, color = scenario)) +
-  geom_point() +
+  geom_point(size = 2, alpha = 0.7) +
   labs(
-    title = "Relationship Between Global Diversity and Basal Area",
-    x = "Hill 1 Global", y = "Basal Area (m²/ha)"
+    title = "Global Diversity vs Basal Area",
+    x = "Hill 1 Global", 
+    y = "Mean Basal Area (m²/ha)",
+    color = "Management Scenario"
   ) +
   theme_minimal()
 ```
 
-```{r}
-p_div_local_global + p_div_vol + p_vol_ba + p_div_ba +
-  plot_layout(ncol = 2) +
-  plot_annotation(title = "Relationships Between Global Indicators")
-```
-
-
-```{r}
-# 3D plot
-library(plotly)
-plot_ly(aggregated, x = ~cumul_volume, y = ~mean_hill_1_global, z = ~mean_totalBasalAream2_ha, color = ~scenario, type = "scatter3d", mode = "markers") %>%
-  layout(
-    title = "3D Visualization of Management Scenarios",
-    scene = list(
-      xaxis = list(title = "Volume (m³/ha)"),
-      yaxis = list(title = "Mean Hill 1"),
-      zaxis = list(title = "Mean Basal Area (m²/ha)")
-    )
+```{r combined-relationships-plot, fig.height = 7}
+# Combined display of indicator relationships
+### Figure 9: Overview of relationships between global indicators
+(p_div_local_global + p_div_vol) / (p_vol_ba + p_div_ba) +
+  plot_layout(ncol = 1, guides = "collect") &
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(size = 12),
+    plot.subtitle = element_text(size = 10)
   )
 ```
 

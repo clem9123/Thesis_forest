@@ -3,8 +3,9 @@
 # ===============================================================================
 #
 # Purpose: Process and aggregate forest simulation output files from FORCEEPS model
-# Author: Clémentine de Montgolfier
+# Author: Clementine de Montgolfier
 # Last Modified: 19 août 2025
+#        R Version: 4.4.1 (2024-06-14) -- "Race for Your Life"
 #
 # Description:
 # This file contains utilities for processing forest simulation output files.
@@ -53,14 +54,6 @@ import_output_scene <- function(
   output_file                        # File path for saving results (currently not implemented)
 ) {
 
-  # ===== LIBRARY LOADING =====
-  # Load required packages for file operations, data manipulation, and text processing
-  library(fs)      # File system operations (dir_ls)
-  library(dplyr)   # Data manipulation (mutate, select, bind_rows, etc.)
-  library(purrr)   # Functional programming (map_dfr)
-  library(readr)   # Reading delimited files (read_table)
-  library(stringr) # String manipulation (str_extract)
-
   # ===== STEP 1: FILE DISCOVERY =====
   # Find all output directories that match the pattern "output-cmd_XX.txt" 
   # These directories contain the simulation result files
@@ -88,20 +81,13 @@ import_output_scene <- function(
     # Add a unique identifier for each simulation file
     mutate(simulation_id = row_number())
 
-  # Print summary of discovered files
-  message("Total simulation files found: ", nrow(all_sim_files))
-
   # ===== STEP 3: INITIALIZE DATA STORAGE =====
   # Create empty data frame to store all processed simulation data
   aggregated_data <- data.frame()
 
-  # Display file inventory (excluding file paths for readability)
-  print(all_sim_files %>% select(-file_path))
-
   # ===== STEP 4: PROCESS EACH SIMULATION FILE =====
   # Loop through each simulation file and process it individually
   for (i in seq_len(nrow(all_sim_files))) {
-    message("Processing file number: ", i, " of ", nrow(all_sim_files))
 
     # Extract file information for current iteration
     file_path <- all_sim_files$file_path[i]  # Path to current simulation file
