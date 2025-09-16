@@ -17,6 +17,7 @@ load("data/forest_data.RData")
 Retz <- forest_data %>% as.data.frame() %>% select(-geometry)
 corresponding.species <- 
 read.csv("data/corresponding_species.csv", header = TRUE, sep = ",")
+seeds = c(332, 124, 102, 895, 869, 777, 969, 449, 131, 704)
 
 ## Inventory variables ---------------------------------------------------------
 #------------------------------------------------------------------------------#
@@ -92,8 +93,6 @@ update_forceps_parameters(
 #------------------------------------------------------------------------------#
 
 # faire une liste de 10 random seed puis une boucle sur cette liste
-
-seeds = c(332, 124, 102, 895, 869, 777, 969, 449, 131, 704)
 
 for (i in seeds){
   update_forceps_parameters(

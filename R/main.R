@@ -45,7 +45,7 @@ source("R/utils/requirement.R")
 
 # Base path to FORCEEPS working directory and analysis configuration
 forceeps_path = "C:/Capsis4/data/forceps/clementine/" # Change this to your FORCEEPS base path
-analyse_name = "forceeps_replicates"  # Change this to switch analysis type
+analyse_name = "inventory_to_initialisation"  # Change this to switch analysis type
 base_path = paste0(forceeps_path, analyse_name, "/")
 
 # Store current working directory to return to it later

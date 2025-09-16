@@ -1,40 +1,73 @@
 
 # Global To Do
-- [ ] Change the path variable so that someone else can easily adapt it (for ForCEEPS output mainly but also relative path for libraries).
-- [ ] Add a description of each created output and where they are created
-- [ ] Write THE or MANY main in order to run each study independently (with parameters, maybe rethink the organisation to facilitate this)
-- [ ] A lot of code look alike : more function or how to make that clear
-
-- [ ] Add the forceeps initialisation files in data (for reproducibility)
-- [ ] Parfois Retz_act.climate est en maj parfois en min !!!
-- [ ] Créer l'arborescence pour forceeps dans les fichiers generate
+- [ ] comment inventory to initialisation
+- [ ] add litterature review
+- [ ] add vision in study protocole (discussed with JD&JB)
 
 # Description
 Summary of work done during the first year of the PhD, including literature review, preliminary analyses, and initial modeling work.
 
-# Global link between forceeps and code, organisation
+I have done 5 different studies that  will be presented :
+1. Retz analyses
+2. From inventory to model initialization
+3. Repetition
+4. Param_Type
+5. Study beginning
+
+Each of them is in a different folder (in R) with its own Generate.R, Import_output.R and Results.Rmd files.
+
+# Sommaire
+
+1. [Global To Do](#global-to-do)
+2. [Description](#description)
+3. [ForCEEPS and Code Organisation](#forceeps-and-code-organisation)
+  - [ForCEEPS Files Structure](#forceeps-files-structure)
+  - [Study Code Organization](#study-code-organization)
+  - [How to Use](#how-to-use)
+4. [Literature Review](#literature-review)
+5. [Preliminary Work](#preliminary-work)
+  - [Retz Analyses](#retz-analyses)
+  - [From Inventory to Model Initialization](#from-inventory-to-model-initialization)
+  - [Repetition](#repetition)
+  - [Param_Type](#param_type)
+  - [Study Beginning](#study-beginning)
+6. [Data](#data)
+  - [forceeps_init_files](#forceeps_init_files)
+  - [forceeps_output](#forceeps_output)
+  - [retz](#retz)
+
+# ForCEEPS and code organisation
 
 ## ForCEEPS Files Structure
 
-ForCEEPS requires specific initialization files located at: `C:/Capsis4/data/forceps/user/`
+ForCEEPS requires specific initialization files located at: `C:/Capsis4/data/forceps/[user]/`  
+This structure should be followed for each study (it is created in the Generate.R scripts for each study):
 
 ```
 study name/
 ├── data/
-│   ├── forceps.setup              # ForCEEPS configuration
-│   ├── RETZ_0_0.site              # Site file (in a folder or not)
+│   ├── forceps.setup             # ForCEEPS configuration
+│   ├── sites                     # Site data
+│   │   ├── RETZ_0_0.site         # Name needs to be RETS_#_#.site
 │   ├── retz_act.climate          # Climate data
 │   └── inventaires               # Inventories
-│       ├── RETZ_00102_02.inv      # Name needs to be RETS_#_#.inv
-├── cmd_1.txt                      # Command file for batch runs needs to be named cmd_#.txt
+│       ├── RETZ_00102_02.inv     # Name needs to be RETS_#_#.inv
+├── cmd_1.txt                     # Command file for batch runs needs to be named cmd_#.txt
 ```
 
 To run it :
 capsis -p script forceps.myscripts.brieuc.SimulationBrieucManagement data\forceps\[user]\[study name]\cmd_1.txt at C:/Capsis4/ in the terminal
 
+Or use the main directly from R/main.R
+
+ForCEEPS (with brieuc running script) gives 3 different output files :
+- complete : individual tree data
+- mean : summary data
+- productivity_scene : summary data for productivity scene (by species)
+
 ## Study Code Organization
 
-Each ForCEEPS study follows a standardized 4-step workflow:
+Each ForCEEPS study follows a standardized 4-step workflow that can be found in `R/main.R`:
 
 ### 1. **Generate.R**
 - Creates ForCEEPS initialization files (inventories, scenarios, command files)
@@ -45,12 +78,23 @@ Each ForCEEPS study follows a standardized 4-step workflow:
   - inventories
   - command files
 
-### 2. **Run** (manual step)
-- Execute ForCEEPS simulations via command line:
+### 2. **Run** (automatic or manual step)
+
+### 2. **Run ForCEEPS Simulations**
+
+You can run ForCEEPS simulations either automatically (from main) or manually (via command line):
+
+#### **Automatic (local machine)**
+- Use the provided utility script to run simulations directly from R (`R/utils/runForceeps.R`):
+  This will execute all command files for the study using your local ForCEEPS installation.
+
+#### **Manual (server or other machine)**
+- Execute ForCEEPS simulations via command line and/or bash script:
   ```bash
-  capsis -p script forceps.myscripts.brieuc.SimulationBrieucManagement data\forceps\[user]\[study]\cmd_1.txt
+  capsis -p script forceps.myscripts.brieuc.SimulationBrieucManagement data\forceps\[user]\[study]\cmd_[n].txt
   ```
 - Run from `C:/Capsis4/` directory
+
 
 ### 3. **Import_output.R**
 - Imports ForCEEPS simulation results
@@ -64,40 +108,33 @@ Each ForCEEPS study follows a standardized 4-step workflow:
 - Knits to `Reports/[study_name].pdf`
 - Uses data from step 3
 
-This standardized workflow ensures reproducibility and makes it easy to adapt studies for new research questions.
-
 ## How to Use
 
 ### Requirements
 - **R** (≥ 4.0.0)
 - **ForCEEPS** installed in `C:/Capsis4/`
 - **LaTeX** for PDF reports
-- **R packages:** `tidyverse`, `fs`, `gridExtra`, `patchwork`, `knitr`
+- **R packages:** see `R/utils/requirements.R`
 
 ### Setup
-```r
-# Install dependencies
-install.packages(c("tidyverse", "fs", "gridExtra", "patchwork", "knitr"))
 
-# Update base_path in Generate.R files to match your ForCEEPS installation
-base_path <- "C:/Capsis4/data/forceps/[your_user]/[study_name]/"
-```
-
-### Run a study
-1. Execute `Generate.R` 
-2. Run ForCEEPS simulations manually
-3. Execute `Import_output.R`
-4. Knit `Results.Rmd`
+1. Clone this repository.
+2. Install required R packages by running `R/utils/requirements.R`.
+3. Set your ForCEEPS path in `R/main.R` (variable `forceeps_path`) and your working directory to this repository (Thesis_forest).
+4. Ensure ForCEEPS is correctly installed;
+5. Run main script for a specific study.
 
 # Literature Review
 
-- [ ] Add content to this file.
+- [ ] Add content
 
 # Preliminary Work
 
 ## Retz Analyses
 
-- [ ] Attention : error in some of the graph need to check where it is coming from (maybe species columns)
+Only study that does not work with main.R  
+
+**Objective:** It is a simple visualisation of the Retz data BDD_UEP_2021.csv, as well as some choices made for future analyses concerning this data.
 
 - In `Import_data.R`:
   - Created two data tables:
@@ -108,17 +145,23 @@ base_path <- "C:/Capsis4/data/forceps/[your_user]/[study_name]/"
 
 ## From Inventory to Model Initialization
 
-- Work in progress: need to explain and clean the code.
+**Objective:** Test the process of converting an inventory into ForCEEPS initialization files with different choices on data interpretation.
 
-- [x] Merge Create_unif and Generate so that there is one file and it uses inventory_utils 
-- [ ] Import output is made in the `Results.Rmd` file maybe change it to the import output for knitting speed and clarity
+This is an unfinished work but gives the main lines of what could be done. The goal would be to undertand the sensitivity of the model to initialisation.
+
+- In `Generate.R` create a data table `data/forceeps_output/inventory.RData` with different initial inventories (from the same Retz data) according to different choices of interpretation of the data (species proportion, diameter distribution, etc).
+- In `Import_output.R` create a data table `data/forceeps_output/inventory_productivityScene.RData` with the output of the simulations linked to the different inventories.
 
 ## Repetition
 
-- `Generate.R`: generate the necessary repetition data for ForceEPS.
+**Objective:** Determine the minimum number of simulations needed for reliable forest metric estimates in ForCEEPS.
+
+**Method:** Ran 5,000 ForCEEPS simulations for the Retz forest, analyzed convergence of coefficient of variation (CV) and standardized error across different numbers of dynamics (m) and simulations (n).
+
+**Output Created:**
 - `Import_output.R`: create outputs:
-  - `output/repetition_mean.RData`
-  - `output/repetition_productivityScene.RData`
+  - `output/repetition_mean.RData` : output of the mean forceeps output
+  - `output/repetition_productivityScene.RData` : output of the productivity scene forceeps output
 
 ## Param_Type
 
@@ -129,39 +172,42 @@ base_path <- "C:/Capsis4/data/forceps/[your_user]/[study_name]/"
 - 6 param_type values (0.0 to 1.0, step=0.2) × 10 repetitions = 60 simulations
 - 80-year simulations, 12-year rotation, target basal area 15 m²/ha
 
-**Code organization:**
-- `Generate.R`: Creates uniform inventory and ForCEEPS command files for all param_type scenarios
-- `Import_output.R`: Imports simulation results and links to param_type/repetition structure  
-- `Results.Rmd`: Theoretical analysis + empirical results (basal area, density, diameter distributions)
-
 **Outputs created:**
 - `data/forceeps_output/paramType_complete.RData`: Complete dataset with individual tree data for all simulations (created in `Import_output.R`)
-- `Reports/Forceeps_paramType.pdf`: Full analysis report
-
-**Status:**
-- [x] Code reviewed and utilizes inventory/output utilities
-- [x] Path management improved for reproducibility  
-- [x] Comprehensive documentation and analysis completed
-- [ ] Integration with main workflow (pending main.R development)
-- [ ] Review the report
 
 # Study Beginning
 
-Generate convention and need to change
+**Objective:**  
+Analyze the effects of different forest management strategies on multi-scale forest dynamics using FORCEEPS simulations. Gives my vision for future work.
 
-Potential introduction for a Master internship:  
-- `Generate.R`: generate ForceEPS initialization files.
-- `Run_forceeps.R`: run ForceEPS in parallel with the generated init files.  
-- `Import_output.R`: import and modify data to relink each simulation to each itinerary and create different scenarios (combinations of itineraries).  For now it is useless everything is done in results
+**Method:**  
+Simulated three silvicultural scenarios (clear-cut, continuous cover, natural evolution) across multiple plots. Generated scenarios with repeated random plot assignments to assess variability. Calculated productivity, harvested volume, standing biomass, and diversity indices (Hill numbers) at both plot and landscape levels. Compared local and global diversity to evaluate beta diversity. Visualized results with temporal and relational plots.
 
-- [ ] Results : Make data elsewhere and analyses here
+**Output Created:**  
+- `data/forceeps_output/protocole_mean.RData`: output of the mean forceeps output
+- `data/forceeps_output/protocole_productivityScene.RData`: output of the productivity scene forceeps output
 
-# Reusable code (maybe for forceeps analyses)
+# Data
 
-- `utils.R` — mainly for inventory and output functions.
-- SEE : `R/utils/inventory_utils.R` & `R/utils/output_utils.R`
+- **forest_data**: Retz data filtered to include only species compatible with ForCEEPS.
+- **corresponding.species**: Table mapping Retz species names to their ForCEEPS equivalents (made manually).
 
-# structure du code et de forceps :
+## forceeps_init_files
 
-- data inventaire, ...
-- naming of files in order to work...
+see forceeps documentation ;)
+
+## forceeps_output
+
+| Output File                                   | Created In           | Description                                                                                   |
+|-----------------------------------------------|----------------------|-----------------------------------------------------------------------------------------------|
+| `inventory.RData`                             | Generate.R           | Initial inventories generated from Retz data with different interpretation choices             |
+| `inventory_productivityScene.RData`           | Import_output.R      | Simulation outputs linked to different inventories                                            |
+| `repetition_mean.RData`                       | Import_output.R      | Mean results from 5,000 ForCEEPS simulations for repetition analysis                          |
+| `repetition_productivityScene.RData`          | Import_output.R      | Productivity scene outputs from repetition simulations                                        |
+| `paramType_complete.RData`                    | Import_output.R      | Complete dataset with individual tree data for all param_type simulations                     |
+| `protocole_mean.RData`                        | Import_output.R      | Mean results from management strategy simulations                                             |
+| `protocole_productivityScene.RData`           | Import_output.R      | Productivity scene outputs from management strategy simulations                               |
+
+## retz
+
+Data from the ONF (both csv and QGIS files)

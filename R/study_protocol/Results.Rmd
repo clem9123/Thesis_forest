@@ -5,18 +5,10 @@ date: "`r format(Sys.Date(), '%Y-%m-%d')`"
 output: html_document
 ---
 
-# Note on simulation protocol and convention chosen
+# Abstract
 
-I created 1 command file for each patch
-Inside I have one line for each itinerary
-
-With Brieux naming convention : each line get a unique identifier simply simulation_# from 1 to number of itineraries ran.
-
-To add repetitions (see forceeps_replicates analyses) there are multiple possibilities :  
-- use different seed in the command file and then regroup simulations together. For example simulation 1-10 for the first itinerary, 11-20 for the second... (either by keeping very good track of what is done (and a lot of loops when importing data) or by having a table that gives the correspondances between simulation number and caracteristics of the simulation.)  
-- change naming convention in forceeps (by modifying brieux scripts to get our own)
-
-- [ ] Implement a system to repeat simulations
+This study is the beginning of a more comprehensive study on the effect of management strategies on forest multi-scale dynamics.
+It presents a multi-scale analysis of forest management scenarios using simulation outputs from the FORCEEPS model. Three silvicultural strategies—clear-cut management, continuous cover forestry, and natural evolution—were evaluated across multiple plots. Key indicators such as productivity, harvested volume, standing biomass, and diversity indices (Hill numbers) were calculated at both plot and landscape levels. The workflow includes scenario generation with repeated random plot assignments to assess variability, and comparative analysis of local versus global diversity to explore beta diversity. Results are visualized through temporal and relational plots, providing insights into the impacts of management strategies on forest structure and diversity.
 
 ```{r options, echo = FALSE, warning = FALSE, message = FALSE}
 # Global document options configuration
