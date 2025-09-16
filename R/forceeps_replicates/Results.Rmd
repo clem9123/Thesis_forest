@@ -1,8 +1,8 @@
 ---
-title: "Determining Optimal Simulation Repetition for Forest Stand Modeling: A Replication Analysis of the FORCEPS Forest Growth Model"
-author: "Clementine de Montgolfier"
+title: "Determining Optimal Simulation Repetition for Forest Stand Modeling: A Replication Analysis of the ForCEEPS Forest Growth Model"
+author: "Clémentine de Montgolfier"
 date: "`r format(Sys.Date(), '%Y-%m-%d')`"
-output: pdf_document
+output: html_document
 ---
 
 ```{r options, include=FALSE}
@@ -12,9 +12,7 @@ knitr::opts_knit$set(root.dir = "../../")
 knitr::opts_chunk$set(
   echo = FALSE,
   warning = FALSE,
-  message = FALSE,
-  fig.width = 8,
-  fig.height = 8
+  message = FALSE
 )
 ```
 
@@ -24,9 +22,9 @@ load("data/forceeps_output/repetition_mean.RData") # all_data
 
 # Abstract
 
-Forest growth modeling is essential for sustainable forest management and climate change mitigation strategies. However, determining the optimal number of simulation repetitions required to achieve statistically reliable estimates is challenge in computational forest ecology. This study addresses this question for the FORCEPS (Forest Ecosystem Simulation Platform) forest growth model using data from the Retz forest in France.
+Forest growth modeling is essential for sustainable forest management and climate change mitigation strategies. However, determining the optimal number of simulation repetitions required to achieve statistically reliable estimates is challenge in computational forest ecology. This study addresses this question for the ForCEEPS forest growth model using data from the Retz forest in France.
 
-We conducted a comprehensive replication analysis using 5,000 individual FORCEPS simulations to determine the minimum number of simulations (n) required for stable estimates of key forest metrics including basal area, volume, biomass, productivity, and mortality. Our methodology employed a two-stage approach: first, we assessed the convergence of the coefficient of variation (CV) across different numbers of repetitions (m); second, we analyzed how CV and standardized error decrease with increasing simulation numbers (n).
+We conducted a comprehensive replication analysis using 5,000 individual ForCEEPS simulations to determine the minimum number of simulations (n) required for stable estimates of key forest metrics including basal area, volume, biomass, productivity, and mortality. Our methodology employed a two-stage approach: first, we assessed the convergence of the coefficient of variation (CV) across different numbers ForCEEPS dynamics (m); second, we analyzed how CV and standardized error decrease with increasing simulation numbers (n).
 
 Results demonstrate that 10 repetitions (m = 10) are sufficient for coefficient of variation convergence across all tested forest metrics. For simulation numbers, our analysis reveals that 10 simulations (n = 10) provide adequate precision for most forest management applications. While 50 simulations offer superior precision, the marginal improvement does not justify the increased computational cost for our applications.
 
@@ -34,20 +32,21 @@ Results demonstrate that 10 repetitions (m = 10) are sufficient for coefficient 
 
 ## Study Objectives
 
-This study aims to establish optimal simulation parameters for the FORCEEPS forest model through a comprehensive replication analysis. Specifically, we address two fundamental questions:
+This study aims to establish the minimum number of simulations for the ForCEEPS forest model in order to make conclusions that are not dependant on the stochasticity of the model.
+In order to do that we are going to calculate the divergence between dynamics. A dynamic being the mean of n simulation repetitions. But for this we also need to know between how many dynamics the coefficient of variation is stable. So we are going to determine : 
 
-1. **Repetition optimization (m)**: What is the minimum number of repetitions required to achieve stable coefficient of variation estimates?
-2. **Simulation optimization (n)**: How many individual simulations are needed to achieve acceptable precision in forest metric estimates?
+1. **Number of(m)**: Number of dynamics between which the coefficient of variation needs to be calculated.
+2. **Simulation (n)**: How many individual simulations are needed to achieve acceptable precision in forest metric estimates?
 
 ## Study Site and Model Description
 
 ### Study Area
 
-The analysis focuses on the Retz forest (patch RETZ_00137_02), located in northern France.
+The analysis focuses on the Retz forest (patch RETZ_00137_02). See RETZ inventory csv for more details.
 
-### FORCEPS Model
+### ForCEEPS Model
 
-FORCEEPS is a spatially explicit, individual-based forest model that simulates tree growth, competition, mortality, and regeneration processes. The model operates at the individual tree level and incorporates climate variables, soil characteristics, and species-specific physiological parameters. Some output variables include:
+ForCEEPS is a spatially explicit, individual-based forest model that simulates tree growth, competition, mortality, and regeneration processes. The model operates at the individual tree level and incorporates climate variables, soil characteristics, and species-specific physiological parameters. Some output variables include:
 
 - Total basal area (m2/ha)
 - Total volume (m3/ha)  
@@ -61,23 +60,13 @@ FORCEEPS is a spatially explicit, individual-based forest model that simulates t
 
 ### Data Generation
 
-We conducted 5,000 independent FORCEPS simulations for the Retz forest patch, each spanning 80 years (2020-2100) with annual time steps. All simulations used identical initial forest conditions but different random seeds to capture stochastic variability in growth processes. The simulation protocol included:
+We conducted 5,000 independent ForCEEPS simulations for the Retz forest patch, each spanning 80 years (2020-2100) with annual time steps. All simulations used identical initial forest conditions but different random seeds to capture stochastic variability in growth processes. The simulation protocol included:
 
 - **Patch area**: 1,000 hectares
 - **Simulation period**: 80 years (2020-2100)
 - **Climate scenario**: Current climate conditions (retz_act.climate)
-- **Management scenario**: 80_3_1_25_FSyl-80 (representing typical silvicultural practices)
+- **Management scenario**: 80_3_1_25_FSyl-80 (no management)
 - **Species composition**: 9 potential species based on local forest inventory data
-
-### Statistical Analysis Framework
-
-Our analysis employed a two-stage approach to optimize both repetition numbers (m) and simulation numbers (n):
-
-**Stage 1: Repetition Analysis (m optimization)**
-For a fixed number of simulations (n), we assessed how the coefficient of variation (CV) stabilizes as the number of repetitions (m) increases. Each repetition represents an independent sampling of n simulations from our 5,000-simulation pool.
-
-**Stage 2: Simulation Analysis (n optimization)**  
-Using the optimal repetition number determined in Stage 1, we analyzed how CV and standardized error decrease as the number of simulations (n) increases.
 
 ## Statistical Metrics
 
@@ -106,16 +95,16 @@ We used the following convergence criteria:
 
 ## Repetition Optimization Analysis (Stage 1)
 
-The first stage of our analysis focused on determining the minimum number of repetitions (m) required for stable coefficient of variation estimates. We tested repetition numbers ranging from 5 to 400 across three different simulation group sizes (n = 2, 10, 50 i.e. each repetition is a mean of n simulations) for three key forest metrics.
+The first stage of our analysis focused on determining the minimum number of dynamics (m) required for stable coefficient of variation estimates. We tested for 3 different dynamics (dynamics which are the mean of n = 2, 10, 50 forceeps simulations) for three key forest metrics.
 
 ### Analytical Approach
 
 For each combination of simulation number (n) and repetition number (m), we:
 
 1. Randomly sampled n simulations from our 5,000-simulation pool
-2. Calculated mean values for each forest metric on the n simulations
-3. Repeated this process m times to generate m repetitions
-4. Computed the coefficient of variation across these m repetitions
+2. Calculated mean values for each forest metric on the n simulations to get one dynamic
+3. Repeated this process m times to generate m dynamics
+4. Computed the coefficient of variation across these m dynamics
 5. Assessed CV stability as m increased
 
 ```{r repetition-analysis-function}
@@ -230,10 +219,10 @@ m_analyse <- function(all_data, nb_simul = 10, variable = TotalBasalArea.m2.ha) 
 
 ### Results for Total Basal Area
 
-#### Low Simulation Number (n = 2)
+#### N= 2 dynamics
 
-```{r basal-area-2sim, fig.cap="Figure 1: Coefficient of variation analysis for total basal area with 2 simulations per repetition. The left panel shows individual repetition trajectories across different repetition group sizes. The right panel demonstrates CV convergence, with values stabilizing around 0.10 after 50 repetitions.", fig.height=6}
-# Run the simulation for 2 repetitions
+```{r basal-area-2sim, fig.cap="Coefficient of variation analysis for total basal area with 2 simulations per dynamic. The left panel shows variation coefficient evolution accross dynamic numbers. The right panel demonstrates CV and errors as table."}
+# Run
 results <- m_analyse(all_data, nb_simul = 2, variable = totalBasalArea.m2.ha)
 
 # Create summary table
@@ -260,20 +249,17 @@ table_grob <- tableGrob(
 )
 
 # Display side by side
-grid.arrange(
-  results$plot_cv + ylim(0, 0.2) + 
-    theme(plot.title = element_text(size = 10)),
-  table_grob, 
-  ncol = 2,
-  widths = c(2, 1)
-)
+layout <- results$plot_cv + ylim(0, 0.2) + 
+  theme(plot.title = element_text(size = 10)) + 
+  table_grob
+layout
 ```
 
-**Analysis**: With only 2 simulations per repetition, the coefficient of variation remains relatively high (approximately 0.10) and requires approximately 50 repetitions for stabilization. The standard error is substantial (4 m2/ha), indicating significant uncertainty in estimates.
+**Analysis**: With only 2 simulations per dynamic, the coefficient of variation remains relatively high (approximately 0.10) and requires approximately 50 dynamics for stabilization. The standard error is substantial (4 m2/ha), indicating significant uncertainty in estimates.
 
-#### Moderate Simulation Number (n = 10)
+#### N= 10 dynamics
 
-```{r basal-area-10sim, fig.cap="Figure 2: Coefficient of variation analysis for total basal area with 10 simulations per repetition. CV values stabilize around 0.05 with good convergence achieved at 10 repetitions, representing an optimal balance between precision and computational efficiency.", fig.height=6}
+```{r basal-area-10sim, fig.cap="Coefficient of variation analysis for total basal area with 10 simulations per dynamic. CV values stabilize around 0.05 with good convergence achieved at 10 dynamics, representing an optimal balance between precision and computational efficiency."}
 # Run the simulation for 10 repetitions
 results <- m_analyse(all_data, nb_simul = 10, variable = totalBasalArea.m2.ha)
 
@@ -299,20 +285,17 @@ table_grob <- tableGrob(
   )
 )
 
-grid.arrange(
-  results$plot_cv + ylim(0, 0.2) + 
-    theme(plot.title = element_text(size = 10)),
-  table_grob, 
-  ncol = 2,
-  widths = c(2, 1)
-)
+layout <- results$plot_cv + ylim(0, 0.2) + 
+  theme(plot.title = element_text(size = 10)) + 
+  table_grob
+layout
 ```
 
-**Analysis**: With 10 simulations per repetition, the coefficient of variation decreases substantially to approximately 0.05 and achieves stable convergence at just 5-10 repetitions. The standard error reduces to 1 m2/ha, representing a significant improvement in precision.
+**Analysis**: With 10 simulations per dynamic, the coefficient of variation decreases substantially to approximately 0.05 and achieves stable convergence at just 5-10 dynamics. The standard error reduces to 1 m2/ha, representing a significant improvement in precision.
 
-#### High Simulation Number (n = 50)
+#### N= 50 dynamics
 
-```{r basal-area-50sim, fig.cap="Figure 3: Coefficient of variation analysis for total basal area with 50 simulations per repetition. CV values are very low (approximately 0.02) and demonstrate excellent stability from the first repetition group, indicating high precision with minimal uncertainty.", fig.height=6}
+```{r basal-area-50sim, fig.cap="Coefficient of variation analysis for total basal area with 50 simulations per dynamic. CV values are very low (approximately 0.02) and demonstrate excellent stability from the first dynamic group, indicating high precision with minimal uncertainty."}
 # Run the simulation for 50 repetitions
 results <- m_analyse(all_data, nb_simul = 50, variable = totalBasalArea.m2.ha)
 
@@ -337,22 +320,19 @@ table_grob <- tableGrob(
   )
 )
 
-grid.arrange(
-  results$plot_cv + ylim(0, 0.2) + 
-    theme(plot.title = element_text(size = 10)),
-  table_grob, 
-  ncol = 2,
-  widths = c(2, 1)
-)
+layout <- results$plot_cv + ylim(0, 0.05) + 
+  theme(plot.title = element_text(size = 10)) + 
+  table_grob
+layout
 ```
 
-**Analysis**: With 50 simulations per repetition, the coefficient of variation achieves excellent stability (0.02) immediately, with minimal variation across repetition groups. The standard error is very low (0.2 m2/ha), indicating highly precise estimates.
+**Analysis**: With 50 simulations per dynamic, the coefficient of variation is extremely low (approximately 0.02) and achieves immediate stability from the first dynamic group.
 
 ### Results for Total Volume
 
-#### Low Simulation Number (n = 2)
+#### N= 2 dynamics
 
-```{r volume-2sim, fig.cap="Figure 4: Coefficient of variation analysis for total volume with 2 simulations per repetition. Similar patterns to basal area are observed, with CV values requiring substantial repetitions for convergence.", fig.height=6}
+```{r volume-2sim, fig.cap="Coefficient of variation analysis for total volume with 2 simulations per dynamic. Similar patterns to basal area are observed, with CV values requiring substantial dynamics for convergence."}
 results <- m_analyse(all_data, nb_simul = 2, variable = totalVolume.m3.ha)
 
 cv_summary <- results$cv_table %>%
@@ -373,12 +353,15 @@ table_grob <- tableGrob(cv_summary, rows = NULL,
                          colhead = list(fg_params = list(cex = 0.9, fontface = "bold"))
                        ))
 
-grid.arrange(results$plot_cv + ylim(0, 0.2), table_grob, ncol = 2, widths = c(2, 1))
+layout <- results$plot_cv + ylim(0, 0.2) + table_grob
+layout
 ```
 
-#### Moderate Simulation Number (n = 10)
+**Analysis**: Volume results demonstrate similar patterns to basal area, with high CV values (=0.12) requiring 50+ dynamics for stabilization when using only 2 simulations per dynamic.
 
-```{r volume-10sim, fig.cap="Figure 5: Coefficient of variation analysis for total volume with 10 simulations per repetition. Convergence patterns mirror those observed for basal area, confirming the robustness of our findings across forest metrics.", fig.height=6}
+#### N= 10 dynamics
+
+```{r volume-10sim, fig.cap="Coefficient of variation analysis for total volume with 10 simulations per dynamic. Convergence patterns mirror those observed for basal area, confirming the robustness of our findings across forest metrics."}
 results <- m_analyse(all_data, nb_simul = 10, variable = totalVolume.m3.ha)
 
 cv_summary <- results$cv_table %>%
@@ -399,14 +382,17 @@ table_grob <- tableGrob(cv_summary, rows = NULL,
                          colhead = list(fg_params = list(cex = 0.9, fontface = "bold"))
                        ))
 
-grid.arrange(results$plot_cv + ylim(0, 0.2), table_grob, ncol = 2, widths = c(2, 1))
+layout <- results$plot_cv + ylim(0, 0.2) + table_grob
+layout
 ```
+
+**Analysis**: Volume metrics with 10 simulations per dynamic show consistent improvement over the n=2 scenario, with CV values stabilizing around 0.05 and convergence achieved within 10 dynamics.
 
 ### Results for Total Biomass
 
-#### Low Simulation Number (n = 2)
+#### N= 2 dynamics
 
-```{r biomass-2sim, fig.cap="Figure 6: Coefficient of variation analysis for total biomass with 2 simulations per repetition. Biomass estimates show similar convergence patterns to other forest metrics, validating our methodological approach.", fig.height=6}
+```{r biomass-2sim, fig.cap="Coefficient of variation analysis for total biomass with 2 simulations per dynamic. Biomass estimates show similar convergence patterns to other forest metrics, validating our methodological approach."}
 results <- m_analyse(all_data, nb_simul = 2, variable = totalBiomass.t.ha)
 
 cv_summary <- results$cv_table %>%
@@ -427,12 +413,15 @@ table_grob <- tableGrob(cv_summary, rows = NULL,
                          colhead = list(fg_params = list(cex = 0.9, fontface = "bold"))
                        ))
 
-grid.arrange(results$plot_cv + ylim(0, 0.2), table_grob, ncol = 2, widths = c(2, 1))
+layout <- results$plot_cv + ylim(0, 0.2) + table_grob
+layout
 ```
 
-#### Moderate Simulation Number (n = 10)
+**Analysis**: Biomass estimates with 2 simulations per dynamic demonstrate similar high variability patterns as observed for basal area and volume, requiring substantial dynamics for convergence.
 
-```{r biomass-10sim, fig.cap="Figure 7: Coefficient of variation analysis for total biomass with 10 simulations per repetition. Results consistently support the conclusion that 10 repetitions provide adequate convergence for forest modeling applications.", fig.height=6}
+#### N= 10 dynamics
+
+```{r biomass-10sim, fig.cap="Coefficient of variation analysis for total biomass with 10 simulations per dynamic. Results consistently support the conclusion that 10 dynamics provide adequate convergence for forest modeling applications."}
 results <- m_analyse(all_data, nb_simul = 10, variable = totalBiomass.t.ha)
 
 cv_summary <- results$cv_table %>%
@@ -453,12 +442,15 @@ table_grob <- tableGrob(cv_summary, rows = NULL,
                          colhead = list(fg_params = list(cex = 0.9, fontface = "bold"))
                        ))
 
-grid.arrange(results$plot_cv + ylim(0, 0.2), table_grob, ncol = 2, widths = c(2, 1))
+layout <- results$plot_cv + ylim(0, 0.2) + table_grob
+layout
 ```
+
+**Analysis**: Biomass estimates with 10 simulations per dynamic consistently demonstrate optimal convergence behavior, supporting the general conclusion that 10 dynamics provide adequate precision for forest modeling applications. I skipped the 50 simulations analysis for biomass as the patterns are consistent with previous metrics.
 
 ### Stage 1 Conclusions
 
-The analysis demonstrates that while 50 repetitions provide superior precision from the outset, 10 repetitions achieve acceptable precision (if we use the mean of at least 10 simulations), establishing our framework for Stage 2 analysis.
+The analysis demonstrates that while 50 simulations provide superior precision from the outset, 10 repetitions achieve acceptable precision when using the mean of at least 10 simulations, establishing our framework for Stage 2 analysis.
 
 ## Simulation Optimization Analysis (Stage 2)
 
@@ -572,90 +564,39 @@ n_analyses <- function(all_data, variable = TotalBasalArea.m2.ha,
 
 ### Results for Total Basal Area
 
-```{r basal-area-simulation-analysis, fig.cap="Figure 8: Simulation optimization analysis for total basal area. Left panel shows mean trajectories across different simulation group sizes. Center panel demonstrates CV reduction with increasing simulation numbers. Right panel shows standardized error convergence, with significant improvements observed up to n=20.", fig.width=15, fig.height=5}
+```{r basal-area-simulation-analysis, fig.cap="Simulation optimization analysis for total basal area. Left panel shows mean trajectories across different simulation group sizes. Center panel demonstrates CV reduction with increasing simulation numbers. Right panel shows standardized error convergence, with significant improvements observed up to n=20."}
 # Execute analysis for totalBasalArea.m2.ha
 results <- n_analyses(all_data, variable = totalBasalArea.m2.ha)
 
 # Arrange plots side by side
 grid.arrange(results$plot_mean, results$plot_cv, results$plot_error, ncol = 3)
-
-# Display summary statistics
-kable(results$summary_table %>%
-  mutate(
-    cv_max = round(cv_max, 4),
-    error_max = round(error_max, 2),
-    cv_mean = round(cv_mean, 4),
-    error_mean = round(error_mean, 2)
-  ) %>%
-  rename(
-    "Simulations (n)" = n,
-    "Max CV" = cv_max,
-    "Max Error" = error_max,
-    "Mean CV" = cv_mean,
-    "Mean Error" = error_mean
-  ),
-  caption = "Table 1: Precision metrics for total basal area across simulation numbers",
-  booktabs = TRUE
-)
 ```
+
+**Analysis**: Basal area estimates show rapid precision improvement up to n=10-20 simulations, with diminishing returns beyond n=50. The standardized error decreases substantially from n=1 to n=20, with minimal additional improvement at higher simulation numbers.
 
 ### Results for Total Volume
 
-```{r volume-simulation-analysis, fig.cap="Figure 9: Simulation optimization analysis for total volume. Volume estimates show similar convergence patterns to basal area, with optimal precision achieved around n=10-20 simulations.", fig.width=15, fig.height=5}
+```{r volume-simulation-analysis, fig.cap="Simulation optimization analysis for total volume. Volume estimates show similar convergence patterns to basal area, with optimal precision achieved around n=10-20 simulations."}
 # Execute analysis for totalVolume.m3.ha
 results <- n_analyses(all_data, variable = totalVolume.m3.ha)
 
 # Arrange plots side by side
 grid.arrange(results$plot_mean, results$plot_cv, results$plot_error, ncol = 3)
-
-# Display summary statistics
-kable(results$summary_table %>%
-  mutate(
-    cv_max = round(cv_max, 4),
-    error_max = round(error_max, 1),
-    cv_mean = round(cv_mean, 4),
-    error_mean = round(error_mean, 1)
-  ) %>%
-  rename(
-    "Simulations (n)" = n,
-    "Max CV" = cv_max,
-    "Max Error" = error_max,
-    "Mean CV" = cv_mean,
-    "Mean Error" = error_mean
-  ),
-  caption = "Table 2: Precision metrics for total volume across simulation numbers",
-  booktabs = TRUE
-)
 ```
+
+**Analysis**: Volume metrics demonstrate consistent convergence patterns with basal area estimates, confirming the robustness of our simulation optimization approach across different forest metrics.
 
 ### Results for Total Biomass
 
-```{r biomass-simulation-analysis, fig.cap="Figure 10: Simulation optimization analysis for total biomass. Biomass estimates demonstrate consistent convergence behavior, supporting the robustness of our optimization approach across multiple forest metrics.", fig.width=15, fig.height=5}
+```{r biomass-simulation-analysis, fig.cap="Simulation optimization analysis for total biomass. Biomass estimates demonstrate consistent convergence behavior, supporting the robustness of our optimization approach across multiple forest metrics."}
 # Execute analysis for totalBiomass.t.ha
 results <- n_analyses(all_data, variable = totalBiomass.t.ha)
 
 # Arrange plots side by side
 grid.arrange(results$plot_mean, results$plot_cv, results$plot_error, ncol = 3)
-
-# Display summary statistics  
-kable(results$summary_table %>%
-  mutate(
-    cv_max = round(cv_max, 4),
-    error_max = round(error_max, 1),
-    cv_mean = round(cv_mean, 4),
-    error_mean = round(error_mean, 1)
-  ) %>%
-  rename(
-    "Simulations (n)" = n,
-    "Max CV" = cv_max,
-    "Max Error" = error_max,
-    "Mean CV" = cv_mean,
-    "Mean Error" = error_mean
-  ),
-  caption = "Table 3: Precision metrics for total biomass across simulation numbers",
-  booktabs = TRUE
-)
 ```
+
+**Analysis**: Biomass estimates demonstrate consistent convergence behavior across all simulation numbers, further validating the robustness of our optimization approach across multiple forest metrics.
 
 ## Analysis of Productivity Metrics
 
@@ -669,7 +610,9 @@ Working on productivity analysis to:
 load("data/forceeps_output/repetition_productivityScene.RData") # global_df
 ```
 
-```{r species-productivity-analysis, message=FALSE, warning=FALSE, fig.width=12, fig.height=16, fig.cap="Figure 11: Species-level productivity analysis showing coefficient of variation and error patterns across different simulation group sizes for individual tree species.", fig.height=10}
+### Species-Level Results
+
+```{r species-productivity-analysis, message=FALSE, warning=FALSE, fig.cap="Species-level productivity analysis showing coefficient of variation and error patterns across different simulation group sizes for individual tree species."}
 global_df_sp <- global_df %>%
   filter(speciesShortName != "Tot")
 
@@ -747,7 +690,7 @@ plot_mean / (plot_cv + plot_error) +
 
 ### Total Productivity Analysis
 
-```{r total-productivity-analysis, message=FALSE, warning=FALSE, fig.width=12, fig.height=8, fig.cap="Figure 12: Total productivity analysis across all species, showing convergence patterns for aggregated productivity metrics with precision thresholds at 5% and 10% error levels.", fig.height=8}
+```{r total-productivity-analysis, message=FALSE, warning=FALSE, fig.cap="Total productivity analysis across all species, showing convergence patterns for aggregated productivity metrics with precision thresholds at 5% and 10% error levels."}
 global_df_tot <- global_df %>%
   filter(speciesShortName == "Tot")
 
@@ -846,7 +789,7 @@ plot_mean_tot / (plot_cv_tot + plot_error_tot) +
 
 Analyzing tree mortality (deadNumber_ha) from the productivity scene dataset.
 
-```{r mortality-analysis, message=FALSE, warning=FALSE, fig.width=12, fig.height=8, fig.cap="Figure 13: Tree mortality analysis showing the number of simulations required to achieve stable estimates of forest mortality rates with defined precision thresholds.", fig.height=8}
+```{r mortality-analysis, message=FALSE, warning=FALSE, fig.cap="Tree mortality analysis showing the number of simulations required to achieve stable estimates of forest mortality rates with defined precision thresholds."}
 global_df_mortality <- global_df %>%
   filter(speciesShortName == "Tot")
 
@@ -942,10 +885,33 @@ plot_mean_mortality / (plot_cv_mortality + plot_error_mortality) +
 - n = **20** for 10% error  
 - n = **50** for 5% error
 
+# Discussion
 
-## Precision Gained by Increasing Repetition Numbers
+Our analysis supports different simulation parameters based on application requirements:
 
-To further validate our findings, we conducted an additional analysis examining precision improvements with varying repetition numbers while maintaining fixed simulation group sizes.
+- 10% error tolerance : n = 10, m = 10
+- 5% error tolerance : n = 50, m = 10
+
+## Methodological Considerations
+
+### Strengths
+
+1. **Comprehensive scope**: Analysis covered multiple forest metrics across 80-year simulations
+2. **Large sample size**: 5,000 independent simulations provide robust statistical foundation
+3. **Systematic approach**: Two-stage optimization ensures both repetition and simulation parameters are optimized
+4. **Practical focus**: Results directly applicable to operational forest modeling
+
+### Limitations
+
+1. **Single forest type**: Results based solely on one initial inventory (to test on different inventories would be a good idea)
+2. **Fixed time horizon**: 80-year simulation period may not capture long-term dynamics
+3. **Limited climate scenarios**: Analysis used current climate conditions only
+4. **Management regime**: Analyses were done with no management.
+
+
+## Other way of determination, discarded
+
+Before this analyses we conducted an other one. We discarded this approach because we decided on using a more robust method with variation coefficient and more independency between groups of repetitions. Howevec I keep this one in the document for the sake of transparency, and in order to understand our process and choices.
 
 ```{r precision-repetition-analysis, message=FALSE, warning=FALSE}
 # Create groups of repetitions
@@ -1030,25 +996,3 @@ plot_cv_analysis <- ggplot(df_cv_analysis) +
 
 grid.arrange(plot_stability, plot_cv_analysis, ncol = 2)
 ```
-
-# Discussion
-
-Our analysis supports different simulation parameters based on application requirements:
-
-- 10% error tolerance : n = 10, m = 10
-- 5% error tolerance : n = 50, m = 10
-
-## Methodological Considerations
-
-### Strengths
-
-1. **Comprehensive scope**: Analysis covered multiple forest metrics across 80-year simulations
-2. **Large sample size**: 5,000 independent simulations provide robust statistical foundation
-3. **Systematic approach**: Two-stage optimization ensures both repetition and simulation parameters are optimized
-4. **Practical focus**: Results directly applicable to operational forest modeling
-
-### Limitations
-
-1. **Single forest type**: Results based solely on Retz forest temperate deciduous ecosystem
-2. **Fixed time horizon**: 80-year simulation period may not capture long-term dynamics
-3. **Limited climate scenarios**: Analysis used current climate conditions only

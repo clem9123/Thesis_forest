@@ -45,7 +45,7 @@ source("R/utils/requirement.R")
 
 # Base path to FORCEEPS working directory and analysis configuration
 forceeps_path = "C:/Capsis4/data/forceps/clementine/" # Change this to your FORCEEPS base path
-analyse_name = "study_protocol"  # Change this to switch analysis type
+analyse_name = "forceeps_replicates"  # Change this to switch analysis type
 base_path = paste0(forceeps_path, analyse_name, "/")
 
 # Store current working directory to return to it later
@@ -76,6 +76,6 @@ source(paste0("R/", analyse_name, "/Import_output.R"))
 # Create PDF reports with results, figures, and interpretations
 rmarkdown::render(
   paste0("R/", analyse_name, "/Results.Rmd"),
-  output_file = paste0(analyse_name, ".pdf"),
+  output_file = paste0(analyse_name, ".html"),
   output_dir = "Reports"
 )

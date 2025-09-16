@@ -59,14 +59,14 @@ round_to_nearest_10 <- function(x) {
 species_proportion <- function(retz_id) {
   species_columns <- colnames(Retz)[9:23]
   
-  # Recuperer les especes presentes et leur proportion
+  # Extract present species and their proportions
   proportions <- Retz %>%
     filter(Identifiant.peuplement.elementaire == retz_id) %>%
     select(all_of(species_columns))
 
   proportions[is.na(proportions)] <- 0
 
-  # Recuperer les 3 plus importantes pour gestion reguliere
+  # Get the top 3 most important species for regular management
   top_species_reg <- proportions %>%
     summarise(across(everything(), sum)) %>%
     pivot_longer(everything(), names_to = "species", values_to = "proportion") %>%
@@ -74,7 +74,7 @@ species_proportion <- function(retz_id) {
     slice_head(n = 3) %>%
     filter(proportion > 0)
 
-  # Formater en forceps cut proportion pour gestion reguliere
+  # Format for FORCEPS cut proportion for regular management
   reg_species_short <- corresponding.species$speciesShortName[match(top_species_reg$species, corresponding.species$Retz_Code)]
   valid_idx <- !is.na(reg_species_short)
   reg_species_short <- reg_species_short[valid_idx]
@@ -86,7 +86,7 @@ species_proportion <- function(retz_id) {
   ) %>%
     paste(collapse = ",")
 
-  # Recuperer les 4 plus importantes pour gestion irreguliere
+  # Get the top 4 most important species for irregular management
   top_species_irreg <- proportions %>%
     summarise(across(everything(), sum)) %>%
     pivot_longer(everything(), names_to = "species", values_to = "proportion") %>%
@@ -94,17 +94,17 @@ species_proportion <- function(retz_id) {
     slice_head(n = 4) %>%
     filter(proportion > 0)
 
-  # Formater en forceps cut proportion pour gestion irreguliere (proportion fixe)
-  # Supprimer les especes NA dans le mapping
+  # Format for FORCEPS cut proportion for irregular management (fixed proportion)
+  # Remove NA species in the mapping
   irreg_species_short <- corresponding.species$speciesShortName[match(top_species_irreg$species, corresponding.species$Retz_Code)]
   valid_idx <- !is.na(irreg_species_short)
   
   irreg_species_short <- irreg_species_short[valid_idx]
 
-  # Formater en forceps cut proportion pour gestion irreguliere (proportion fixe)
+  # Format for FORCEPS cut proportion for irregular management (fixed proportion)
   sp_irreg <- paste0(
     irreg_species_short, "-", 
-    25 # proportion fixe pour les irreguliers
+    25 # fixed proportion for irregular management
   ) %>%
     paste(collapse = ",")
   print(sp_reg)
@@ -185,18 +185,18 @@ generate_scenario <- function(essence, median_age, species_proportion) {
   sp_irreg <- species_proportion[[2]]
   sp_reg <- species_proportion[[1]]
 
-  # Valeurs par defaut si essence non trouvee
+  # Default values if species not found
   default_rotation_sp <- 100
   default_ba_irregulier <- 20
 
-  # Recuperer les valeurs specifiques pour l'essence
+  # Get specific values for the species
   param_row <- params %>% filter(essence == !!essence)
   rotation_sp <- 
     ifelse(nrow(param_row) > 0, param_row$rotation_sp, default_rotation_sp)
   ba_irregulier <- 
     ifelse(nrow(param_row) > 0, param_row$ba_irregulier, default_ba_irregulier)
 
-  # ClearCut scenario - Coupe rase avec regeneration
+  # ClearCut scenario - Clear-cut with regeneration
   scenario_clearCut <- ""
   simul_time <- 0
 
@@ -206,7 +206,7 @@ generate_scenario <- function(essence, median_age, species_proportion) {
       max(1, .) %>%
       min(tot_simul_time - simul_time, .)
 
-    # eclaircies avant coupe finale
+    # Thinning operations before final cut
     if (ClearcutTime > 10) {
       n <- ClearcutTime / 10 - 1
       for (i in 1:n) {
@@ -218,7 +218,7 @@ generate_scenario <- function(essence, median_age, species_proportion) {
       }
     }
 
-    # Coupe finale et regeneration
+    # Final cut and regeneration
     scenario_clearCut <- paste0(
       scenario_clearCut,
       "10_3_0.5_0%_FSyl-80", ";"
@@ -228,7 +228,7 @@ generate_scenario <- function(essence, median_age, species_proportion) {
     simul_time <- simul_time + ClearcutTime
   }
 
-  # Irregular scenario - Gestion irreguliere
+  # Irregular scenario - Irregular management
   scenario_irregular <- ""
   simul_time <- 0
 
@@ -242,7 +242,7 @@ generate_scenario <- function(essence, median_age, species_proportion) {
     simul_time <- simul_time + cut_time
   }
 
-  # NoCut scenario - Aucune intervention
+  # NoCut scenario - No intervention
   scenario_noCut <- paste0(tot_simul_time, "_3_0.5_0%_FSyl-80")
   return(c(scenario_clearCut, scenario_irregular, scenario_noCut))
 }

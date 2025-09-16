@@ -2,7 +2,7 @@
 title: "Analysis of the effect of the parameter: `param_type` in Forceeps"
 author: "Clementine de Montgolfier"
 date: "`r format(Sys.Date(), '%Y-%m-%d')`"
-output: pdf_document
+output: html_document
 ---
 
 ```{r options, include=FALSE}

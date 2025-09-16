@@ -12,7 +12,6 @@ patcharea = 1000
 patchnumber = 1
 climate_file = "retz_act.climate"
 scenario = "80_3_1_25_FSyl-80"
-path = "C:/Capsis4/data/forceps/clementine/Test_initialisation"
 
 load("data/forest_data.RData")
 Retz <- forest_data %>% as.data.frame() %>% select(-geometry)
@@ -63,7 +62,7 @@ for (i in 1:nrow(combinations)) {
   all_inventories[[length(all_inventories) + 1]] <- forceps_inv
   
   # Sauvegarder l'inventaire individuel
-  output_file <- paste0(path, "/data/inventaires/", distribution, "_", species_proportion, "_", repetition, ".inv")
+  output_file <- paste0(base_path, "/data/inventaires/", distribution, "_", species_proportion, "_", repetition, ".inv")
   write_forceps_inventory(forceps_inv %>% select(-c(distribution, species_proportion, repetition)), output_file, patcharea, patchnumber)
 }
 
@@ -71,7 +70,7 @@ for (i in 1:nrow(combinations)) {
 Inventories <- do.call(rbind, all_inventories)
 
 # Sauvegarder le tableau complet en .RData
-save(Inventories, file = "output/inventory.RData")
+save(Inventories, file = "data/forceeps_output/inventory.RData")
 
 
 # Get potential species list in forceps format
@@ -81,7 +80,7 @@ potential_species <- potential_species <- "17 21 23 14 18 13 33 31 5"
 #------------------------------------------------------------------------------#
 
 update_forceps_parameters(
-  filepath = paste0(path, "/data/RETZ_00102_04.site"),
+  filebase_path = paste0(base_path, "/data/RETZ_00102_04.site"),
   updates = list(
     siteBucketSize = round(results$RUM,0),
     siteLatitude = 48.5,
@@ -98,13 +97,13 @@ seeds = c(332, 124, 102, 895, 869, 777, 969, 449, 131, 704)
 
 for (i in seeds){
   update_forceps_parameters(
-    filepath = "data/forceps.setup",
+    filebase_path = "data/forceps.setup",
     updates = list(randomSeed = i),
-    output_path = paste0(path, "/data/forceps_", i, ".setup")
+    output_base_path = paste0(base_path, "/data/forceps_", i, ".setup")
   )
 
   write_command_file(
-    output_file = paste0(path, "/cmd_", i, ".txt"),
+    output_file = paste0(base_path, "/cmd_", i, ".txt"),
     file_setup = paste0("data/forceps_", i, ".setup")
   )
 
@@ -124,6 +123,6 @@ for (i in seeds){
       inventory_file, "\t",
       potential_species, "\t",
       scenario), 
-      file = paste0(path, "/cmd_", i, ".txt"), append = TRUE)
+      file = paste0(base_path, "/cmd_", i, ".txt"), append = TRUE)
   }
 }
