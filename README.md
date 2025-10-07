@@ -1,8 +1,8 @@
 
 # Global To Do
-- [ ] comment inventory to initialisation
-- [ ] add litterature review
-- [ ] add vision in study protocole (discussed with JD&JB)
+- [x] comment inventory to initialisation
+- [ ] add litterature review (In another folder)
+- [x] add vision in study protocole (discussed with JD&JB)
 
 # Description
 Summary of work done during the first year of the PhD, including literature review, preliminary analyses, and initial modeling work.
@@ -196,17 +196,15 @@ Simulated three silvicultural scenarios (clear-cut, continuous cover, natural ev
 
 see forceeps documentation ;)
 
-## forceeps_output
-
-| Output File                                   | Created In           | Description                                                                                   |
-|-----------------------------------------------|----------------------|-----------------------------------------------------------------------------------------------|
-| `inventory.RData`                             | Generate.R           | Initial inventories generated from Retz data with different interpretation choices             |
-| `inventory_productivityScene.RData`           | Import_output.R      | Simulation outputs linked to different inventories                                            |
-| `repetition_mean.RData`                       | Import_output.R      | Mean results from 5,000 ForCEEPS simulations for repetition analysis                          |
-| `repetition_productivityScene.RData`          | Import_output.R      | Productivity scene outputs from repetition simulations                                        |
-| `paramType_complete.RData`                    | Import_output.R      | Complete dataset with individual tree data for all param_type simulations                     |
-| `protocole_mean.RData`                        | Import_output.R      | Mean results from management strategy simulations                                             |
-| `protocole_productivityScene.RData`           | Import_output.R      | Productivity scene outputs from management strategy simulations                               |
+| Output File                                   | Created In (Study)                      | Description                                                                                   |
+|-----------------------------------------------|------------------------------------------------|-----------------------------------------------------------------------------------------------|
+| `inventory.RData`                             | `inventory_to_initialization`        | Initial inventories generated from Retz data with different interpretation choices             |
+| `inventory_productivityScene.RData`           | `inventory_to_initialization`        | Simulation outputs linked to different inventories                                            |
+| `repetition_mean.RData`                       | `Repetition`                                   | Mean results from 5,000 ForCEEPS simulations for repetition analysis                          |
+| `repetition_productivityScene.RData`          | `Repetition`                                   | Productivity scene outputs from repetition simulations                                        |
+| `paramType_complete.RData`                    | `Param_Type`                                   | Complete dataset with individual tree data for all param_type simulations                     |
+| `protocole_mean.RData`                        | `Study_beginning`                              | Mean results from management strategy simulations                                             |
+| `protocole_productivityScene.RData`           | `Study_beginning`                              | Productivity scene outputs from management strategy simulations                               |
 
 ## retz
 

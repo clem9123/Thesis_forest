@@ -40,16 +40,17 @@
 #
 # ===============================================================================
 
+# Store current working directory to return to it later
+working_dir <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
+setwd(working_dir)
+
 # Library requirement
 source("R/utils/requirement.R")
 
 # Base path to FORCEEPS working directory and analysis configuration
 forceeps_path = "C:/Capsis4/data/forceps/clementine/" # Change this to your FORCEEPS base path
-analyse_name = "inventory_to_initialisation"  # Change this to switch analysis type
+analyse_name = "study_protocol"  # Change this to switch analysis type
 base_path = paste0(forceeps_path, analyse_name, "/")
-
-# Store current working directory to return to it later
-working_dir <- getwd()
 
 # Load utility functions for the analysis workflow
 source("R/utils/inventory_utils.R")    # Forest inventory generation utilities
@@ -61,7 +62,7 @@ source("R/utils/output_utils.R")       # Simulation output processing utilities
 source(paste0("R/", analyse_name, "/Generate.R"))
 
 # Step 2: Execute FORCEEPS simulations
-# Run the external FORCEEPS model with the generated command files
+# Run the external FORCEEPS model with the generated command files !! Can be extremelly long !!
 n_commandFiles = 10  # Number of command files to process for batch execution
 source("R/utils/runForceeps_utils.R")
 

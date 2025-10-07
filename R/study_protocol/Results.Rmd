@@ -671,3 +671,13 @@ p_div_ba <- ggplot(aggregated, aes(x = mean_hill_1_global, y = mean_totalBasalAr
 - [ ] **Add additional indicators** (structure, canopy cover, recruitment, dead biomass)  
 - [ ] **Implement calculations with complete dataset** (code to be written and memory-optimized) as this may be necessary for structural diversity indices (needs consideration, but potentially no other output will contain the necessary data)
 - [ ] **Integrate FORCEEPS replications** to calculate means and assess how this fits into the workflow
+
+# Thoughts on future work, interest and limitations
+
+From my point of view this is the most interesting part of the work we did together. I think this workflow is a good basis to start from and can be improved in many ways.  
+
+From here the questions that would motivate me is : **How can we caracterize our landscape ?** This is a complicated question in many ways. First because we want comprehensible indicators that can both describe **local and global characteristics** of the forest. Should we use proportion of stands (taking into account their size or not ?) ? Surface ? Or aggregated indicators (mean basal area, mean diversity ...) ? Distributions ? Maps ? Secondly because those indicators needs not only to describe a fixed **forest state but also its dynamics**, we need to be able to see their evolution through time. Thirdly because some indicator are more difficult to access and proxies might be necessary.
+
+Then the following question will easily be : **How these different indicators interact with each other ?**
+
+Finally this will lead to : **How do different management strategies impact these characteristics ?** How can we manage our forest to maintain or improve these characteristics ? This questions raise one limitation that I met during this work : the difficulty to create archetypical (but interesting) scenarios. I think this is a very important point to work on in the future.
