@@ -1,0 +1,186 @@
+\documentclass[a4paper,12pt]{article}
+% chktex-file 1
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{cite}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{tabularx}
+
+\title{Systematic Literature Review}
+\author{Clémentine de Montgolfier}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+    This document presents a systematic literature review following the PRISMA method. The review aims to synthesize the current state of research on using models to define forest management strategies in the context of climate change.
+\end{abstract}
+
+\tableofcontents
+
+\section{Introduction}
+\label{sec:introduction}
+Provide an overview of the topic, the importance of the review, and the objectives of the systematic review.
+
+\section{Methods}
+\label{sec:methods}
+
+In order to conduct a systematic review of the literature, we followed the PRISMA (Preferred Reporting Items for Systematic Reviews and Meta-Analyses) guidelines (Moher et al., 2009).
+This  method is an evidence-based framework designed to improve the transparency and reproducibility of systematic reviews and meta-analyses. It provides a comprehensive checklist of 27 items that guide researchers through the process of conducting and reporting systematic reviews, including study selection, data extraction, and synthesis (Moher et al., 2009). The method aims to ensure that systematic reviews are conducted rigorously and reported transparently to facilitate replication and comparison across studies.
+
+\subsection{Defining search Eligibility}
+\label{sec:search_eligibility}
+
+To identify relevant studies, we defined four families of search terms, based on the primary research questions in this study. All four families were required in each search query (using an AND connector) to ensure comprehensive coverage of relevant themes. Within each family, we included multiple keywords (connected by OR) to capture a broad range of related terms. \\
+
+The primary object of this study is forest management, which requires the inclusion of both management strategies at differnt scale (operational to strategic) and the forest ecological system. The model family focuses on the capacity of models used for forest management testing. Specifically, we are interested in dynamic models with high predictive capacity, as they are the most effective tools for defining management strategies in the face of future uncertainties. These models allow for testing and optimization of various management interventions, especially in light of anticipated environmental changes. Given the dynamic nature of forest ecosystems and the challenges posed by climate change, models capable of forecasting long-term outcomes under different management scenarios are essential for decision-making and strategy development. The scale of analysis in this review centers on the forest level, which is considered a coherent ecological unit for management purposes. Forest-level studies are particularly valuable because they capture the complex ecological processes that occur at the scale where management interventions can be applied most effectively. To refine the search, we excluded studies that focused on forest biomass at regional or global scales, as these are less relevant to our focus on forest-level management. The search terms were specifically chosen to include both geographic and ecological references to forest scale, ensuring that studies considering forest stand and landscape scales were included, while those examining broader regional or global scales were excluded. \\
+
+The initial terms in each family were chosen based on a combination of existing literature and the expertise of our team. We then screened references from the first database search to refine these terms and avoid any omissions or unjustified exclusions.
+
+\begin{table}[!ht]
+    \centering
+    \begin{tabularx}{\textwidth} { 
+        | >{\raggedright\arraybackslash}X 
+        | >{\centering\arraybackslash}X 
+        | >{\centering\arraybackslash}X 
+        | >{\centering\arraybackslash}X | }
+    \hline
+    Subject & Concept & Application & Words \\
+    \hline
+    \hline
+    \multirow{2}{*}{Main theme} & System & Forest & Forest*, Silvic*, Woodland \\
+    \cline{2-4}
+    & Intervention & Management & manag*, plan*, govern*, strateg* \\
+    \hline
+    \multirow{2}{*}{Methods} & Methods & Dynamic model & agent-based, individual-based, process-based, mechanistic, stochastic, dynamic*\\
+    \cline{2-4}
+    & Scope & forest scales & stand*, patch*, landscape, ecosystem \\
+    \hline
+    \end{tabularx}
+    \caption{Question elements table}
+    \label{tab:question_elements}
+\end{table}
+
+\subsection{Information Source}
+\label{sec:information_source}
+
+All searchs were conducted in the Scopus database. To refine our search strategy, the primary theme of our review was required to appear in the study title, a technique supported by previous systematic review articles (Operationalization and Measurement of Social-Ecological Resilience: A Systematic Review AND aggarwal). Peripheral themes, including methodological approaches and study scale, were searched within titles, abstracts, and keywords. Only studies published in English were included, and the search was restricted to document types classified as articles or reviews. \\
+
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{| m{8cm}  m{2cm}  m{2cm} |}
+    \hline
+    Main search & Nb & Reviews \\ 
+    \hline
+    Main theme in abstract title or keyword & 1,972 & 86 \\ 
+    Main theme in title only & 209 & 10 \\
+    \hline
+    \end{tabular}
+    \caption{Search results in scopus the 17/10/2024. Methods are always included as abstract title or keyword search.}
+    \label{tab:information_sources}
+\end{table}
+
+The final search was conducted on October 17, 2024, and the results were exported for further analysis.
+
+Full scopus search before extraction : ( TITLE ( silvic* OR woodland OR forest* ) AND TITLE ( plann* OR polic* OR decision* OR govern* OR manag* OR strateg* ) AND TITLE-ABS-KEY ( ( agent-based OR individual-based OR process-based OR mechanistic OR stochastic OR dynamic* ) PRE/2 model* ) AND TITLE-ABS-KEY ( ecosystem* OR landscape* OR stand* ) ) AND ( LIMIT-TO ( DOCTYPE , "ar" ) OR LIMIT-TO ( DOCTYPE , "re" ) ) AND ( LIMIT-TO ( LANGUAGE , "English" ) ) \\
+
+For details on the distance between the word "model" and the descriptive terms (e.g., agent-based, process-based), see \hyperref[sec:annexe-1]{Annexe 1: Explanation of the search query syntax}.
+
+\subsection{Screening, criteria}
+\label{sec:screening_criteria}
+
+The first screening was performed on the titles and abstracts of all retrieved studies. Screening criteria focused on exclusion factors (shown in Table~\ref{tab:exclusion_criteria
+}) to quickly assess study relevance based on study objectives and methodology. Studies that did not meet the basic eligibility requirements were excluded at this stage.
+
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{| m{8cm}  m{4cm}|}
+    \hline
+    Criteria & First screening \\ 
+    \hline
+    Not a forest management study & 3 \\
+    No predictive model & 10 \\ 
+    No management tested & 21 \\
+    Not a landscape or stand scale & 23 \\ 
+    Model calibration or explanation & 29 \\ 
+    Land-use management (agriculture or urban) & 7 \\ 
+    \hline
+    \end{tabular}
+    \caption{Number of articles excluded based on different criteria}
+    \label{tab:exclusion_criteria}
+\end{table}
+
+Studies that passed the initial screening underwent a full-text review. During this phase, the studies were assessed in detail to confirm their relevance using the same criterias as the first screening. The final selection of studies consisted of 98 studies.
+
+\subsection{Data Extraction}
+\label{sec:data_extraction}
+
+The data extraction process was designed to capture essential details from each included study, focusing on aspects that would enable a comprehensive analysis and comparison across studies. This process involved systematically reviewing each study to collect consistent data points that would allow for a thorough synthesis of forest management strategies, models used, and key outcomes.
+
+The data extraction process focused on several key aspects of each study, including:
+
+\begin{itemize}
+    \item \textbf{Climate:} Information on how climate factors were considered in the study.
+    \item \textbf{Governance:} Details on governance structures or policies related to forest management.
+    \item \textbf{Management Type:} The type of management strategies tested, such as thinning or other interventions.
+    \item \textbf{Choice:} Methods for comparing different management strategies, including testing, optimization, and viability assessments.
+    \item \textbf{Model:} The type of model used in the study, such as agent-based, individual-based, process-based, mechanistic, stochastic, or dynamic models.
+    \item \textbf{Testing:} The number and type of tests conducted to evaluate the management strategies.
+    \item \textbf{Output:} The outcomes measured in the study, such as forest ecosystem services (FES) studied.
+    \item \textbf{Scale:} The scale of the study, whether it focused on stand, patch, landscape, or ecosystem levels.
+    \item \textbf{Country:} The country or region where the study was conducted.
+    \item \textbf{Time:} The temporal scale of the study, including the duration of the study period.
+    \item \textbf{Spatial Scale Interaction:} Whether the study took into account interactions between multiple spatial scales.
+\end{itemize}
+
+\subsection{Risk of Bias Assessment}
+\label{sec:risk_of_bias}
+
+The risk of bias in the included studies was assessed using several criteria:
+
+\begin{itemize}
+    \item \textbf{Publication Bias:} Only peer-reviewed articles were included to ensure the quality of the studies. However, this may introduce publication bias as studies with negative or non-significant results are less likely to be published.
+    \item \textbf{Grey Literature:} Grey literature, such as reports and theses, was not included in this review. This exclusion may result in missing relevant studies that are not published in peer-reviewed journals.
+    \item \textbf{Database Limitation:} The search was conducted using only one database (Scopus). This limitation may result in missing relevant studies indexed in other databases.
+    \item \textbf{Language Bias:} Only studies published in English were included, which may exclude relevant studies published in other languages.
+    \item \textbf{Selection Bias:} The selection process involved screening titles and abstracts, which may introduce selection bias if relevant studies were excluded based on insufficient information in the abstracts. Even if the criteria were validated with multiple writers, the selection of the articles was done by one person.
+\end{itemize}
+
+Despite these limitations, this review can provide a comprehensive overview of the scientific peer-reviewed research on the question at hand, offering valuable insights into the current state of knowledge in this field.
+
+\section{Results}
+\label{sec:results}
+Present the findings of the systematic review.
+
+\subsection{Study Selection}
+Summarize the results of the study selection process, including a PRISMA flow diagram.
+
+\subsection{Study Characteristics}
+Describe the characteristics of the included studies.
+
+\subsection{Synthesis of Results}
+Synthesize the findings from the included studies.
+
+\section{Discussion}
+\label{sec:discussion}
+Interpret the results, discuss their implications, and compare them with previous research.
+
+\section{Conclusion}
+\label{sec:conclusion}
+Summarize the main findings of the review and suggest directions for future research.
+
+\section*{References}
+\bibliographystyle{plain}
+\bibliography{references}
+
+\section*{Appendix}
+\subsection*{Annexe 1: Explanation of the search query syntax}
+The search query syntax used in the Scopus database includes specific operators to refine the search results. The "PRE/n" operator is used to specify that one term must appear within 'n' words before another term. In this case, "PRE/2" indicates that the descriptive terms (e.g., agent-based, individual-based, process-based, mechanistic, stochastic, dynamic*) must appear within two words before the word "model*". This allows for flexibility in the phrasing of the studies while ensuring that the key concepts are closely related in the text.
+To choose "PRE/2", we tested different values of 'n' (from 0 to 5) and evaluated the relevance of the search results. See table (pattern_result.xlsx).
+
+\end{document}
