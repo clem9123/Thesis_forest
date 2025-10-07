@@ -1,0 +1,35 @@
+<!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
+<qgis version="3.22.4-Białowieża">
+  <identifier>upsg</identifier>
+  <parentidentifier></parentidentifier>
+  <language>FR</language>
+  <type>dataset</type>
+  <title>upsg</title>
+  <abstract>REQUIRED: A brief narrative summary of the data set.
+
+REQUIRED: A summary of the intentions with which the data set was developed.</abstract>
+  <keywords vocabulary="gmd:topicCategory">
+    <keyword>REQUIRED: Common-use word or phrase used to describe the subject of the data set.</keyword>
+  </keywords>
+  <links>
+    <link type="Local Area Network" format="" name="Fichier de formes" url="file://\\SSIG014\DONNEES\Doss\X851001\frt\dep02\retz_2010\l2e\shape\upsg.shp" mimeType="" size="" description=""/>
+  </links>
+  <fees></fees>
+  <constraints type="Accès">REQUIRED: Restrictions and legal prerequisites for accessing the data set.</constraints>
+  <rights>REQUIRED: Restrictions and legal prerequisites for using the data set after access is granted.</rights>
+  <encoding></encoding>
+  <crs>
+    <spatialrefsys>
+      <wkt></wkt>
+      <proj4></proj4>
+      <srsid>0</srsid>
+      <srid>0</srid>
+      <authid></authid>
+      <description></description>
+      <projectionacronym></projectionacronym>
+      <ellipsoidacronym></ellipsoidacronym>
+      <geographicflag>false</geographicflag>
+    </spatialrefsys>
+  </crs>
+  <extent/>
+</qgis>

@@ -1,0 +1,584 @@
+---
+title: "Retz Forest Data Visualization and Analysis"
+author: "Clementine de Montgolfier"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+output: html_document
+---
+
+```{r setup-options, include=FALSE}
+# Configure knitr options for document generation
+# Set working directory for all chunks to project root
+knitr::opts_knit$set(root.dir = "../..")
+# Configure chunk defaults: show code, suppress warnings and messages
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r load-libraries, include=FALSE}
+# Load required libraries for data analysis and visualization
+library(tidyverse)    # Data manipulation and visualization
+library(sf)           # Spatial data handling
+library(tidyr)        # Data tidying
+library(readxl)       # Excel file reading
+library(patchwork)    # Combining multiple plots
+library(knitr)        # Dynamic report generation
+library(kableExtra)   # Enhanced table formatting
+library(RColorBrewer) # Color palettes for visualization
+```
+
+# Data Preparation
+
+Based on the assumptions made in Import_data.R
+(particularly the selection of certain species)
+
+```{r import-forest-data, include=FALSE}
+# Load the processed forest data from RData file
+load("data/retz/forest_data.RData")
+# Extract species column names (columns 9 to 36 contain species data)
+especes <- colnames(forest_data)[9:36]
+```
+
+```{r land-use-overview-plot, include=FALSE}
+# Create a spatial visualization of land use and forest structure
+# This plot shows the different forest management types and land occupation
+ggplot(forest_data %>% 
+       mutate(Structure.et.occupation.du.sol = factor(
+         Structure.et.occupation.du.sol, 
+         levels = c("F", "I", "R", "S", "T", "V", "Z", "M")))) +
+  geom_sf(aes(geometry = geometry, fill = Structure.et.occupation.du.sol)) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),        # Remove grid lines
+    axis.text.x = element_blank(),       # Remove x-axis labels
+    axis.text.y = element_blank()) +     # Remove y-axis labels
+  labs(title = "Land Use and Forest Structure", 
+       fill = "Structure and Land Occupation") +
+  # Define colors and labels for each land use category
+  scale_fill_manual(
+    values = c("#97e49d", "#0a6420", "#ff0000", "#28b128", 
+               "#4f9446", "#a81616", "#abb2f7", "#ff15d8"), 
+    labels = c("Regular high forest", "Irregular forest", "Non-forested (plantable)",
+               "Coppice with standards", "Simple coppice", "Non-plantable",
+               "Forested outside silviculture", "Service area"))
+```
+
+Data modifications applied:  
+- Removal of plots without identifiers (n = 4)  
+- Removal of non-forested plots (R non-forested plantable, V non-plantable, M service area) (n = 145), but kept forested areas outside silviculture (n=7)
+
+```{r define-plotting-functions, include=FALSE}
+# Define a utility function for creating combined spatial and histogram plots
+map_plot <- function(data, fill_var) {
+  # Create spatial map
+  p1 <- ggplot(data) +
+    geom_sf(aes(geometry = geometry, fill = !!sym(fill_var))) +
+    theme_minimal() +
+    theme(
+      panel.grid = element_blank(),
+      axis.text.x = element_blank(),
+      axis.text.y = element_blank()) +
+    theme(legend.position = "none") +
+    labs(title = fill_var)
+  
+  # Create frequency histogram
+  p2 <- ggplot(data, aes(x = !!sym(fill_var))) +
+    geom_bar(aes(fill = !!sym(fill_var), y = (..count..)/sum(..count..))) +
+    theme_minimal() +
+    # Rotate x-axis labels for better readability
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8)) +
+    theme(legend.position = "none") +
+    labs(x = "", y = "Number of plots")
+  
+  # Combine both plots
+  p1 + p2
+}
+```
+
+# Forest Stand Data Visualization (UEP)
+
+## Average Basal Area
+
+```{r basal-area-spatial-distribution, echo=FALSE, fig.width = 12, fig.height = 6}
+# Create spatial map of average basal area
+p1 <- ggplot(data = forest_data) +
+      geom_sf(aes(geometry = geometry, fill = surf.terriere.moy)) +
+      theme_minimal() +
+      theme(
+        panel.grid = element_blank(),        # Remove grid lines
+        axis.text.x = element_blank(),       # Remove axis labels for cleaner map
+        axis.text.y = element_blank()) +
+      scale_fill_continuous(type = "viridis") + 
+      labs(title = "Average Basal Area Distribution")
+
+# Create density plot of basal area values
+p2 <- ggplot(data = forest_data) +
+      geom_density(aes(x = surf.terriere.moy, fill = surf.terriere.moy)) +
+      theme_minimal()
+
+# Combine spatial and statistical plots
+p1 + p2
+```
+
+```{r basal-area-by-age, echo=FALSE, fig.width = 12, fig.height = 6}
+# Analyze relationship between basal area and forest age
+p1 <- ggplot(data = forest_data) +
+  geom_boxplot(aes(x = surf.terriere.moy, y = median_age, 
+                   group = median_age, color = surf.terriere.moy)) +
+  geom_point(aes(x = surf.terriere.moy, y = median_age, color = surf.terriere.moy), 
+             position = "jitter", alpha = 0.3) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(title = "Basal Area by Age Class",
+       x = "Average Basal Area (m²/ha)",
+       y = "Median Age (years)")
+
+# Create density plot showing basal area distribution by age class
+p2 <- ggplot(data = forest_data) +
+    geom_density(aes(x = surf.terriere.moy, fill = surf.terriere.moy, 
+                     color = factor(median_age))) +
+    theme_minimal() +
+    labs(color = "Age Class",
+         x = "Average Basal Area (m²/ha)",
+         y = "Density")
+
+p1 + p2
+```
+
+## Dominant Species
+
+```{r dominant-species-analysis, echo=FALSE, fig.width = 12, fig.height = 6}
+# Use the utility function to create spatial and frequency plots for dominant species
+map_plot(forest_data, "Essence.dominante.1")
+```
+
+## Stand Type Classification
+
+```{r stand-type-visualization, echo=FALSE, fig.width = 12, fig.height = 6}
+# Create a color palette for different stand types
+palette_rainbow <- rainbow((length(unique(forest_data$Type.de.peuplement))))
+type_peuplement_colors <- data.frame(palette_rainbow, sort(unique(forest_data$Type.de.peuplement)))
+colnames(type_peuplement_colors) <- c("Color", "Type.de.peuplement")
+
+# Create spatial map of stand types
+p1 <- ggplot(forest_data %>% left_join(type_peuplement_colors)) +
+  geom_sf(aes(geometry = geometry, fill = Type.de.peuplement)) +
+  scale_fill_manual(values = type_peuplement_colors$Color, 
+                    labels = type_peuplement_colors$Type.de.peuplement) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),        # Remove grid lines
+    axis.text.x = element_blank(),       # Remove axis labels
+    axis.text.y = element_blank()) +
+  theme(legend.position = "none") +
+  labs(title = "Stand Type Distribution")
+
+# Create frequency bar chart of stand types
+p2 <- ggplot(forest_data %>% left_join(type_peuplement_colors), 
+             aes(x = Type.de.peuplement)) +
+  geom_bar(aes(y = (..count..)/sum(..count..), fill = Type.de.peuplement)) +
+  scale_fill_manual(values = type_peuplement_colors$Color, 
+                    labels = type_peuplement_colors$Type.de.peuplement) +
+  theme_minimal() +
+  # Rotate x-axis labels for better readability
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8)) +
+  theme(legend.position = "none") +
+  labs(x = "", y = "Number of plots")
+
+p1 + p2
+```
+
+```{r dominant-stand-types-80-percent, echo=FALSE, fig.width = 12, fig.height = 6}
+# Calculate stand types representing 80% of plots
+forest_data %>%
+  group_by(Type.de.peuplement) %>%
+  summarise(Prop = n()/nrow(forest_data)) %>%
+  arrange(-Prop) %>%
+  mutate(Cum_Prop = cumsum(Prop)) %>%
+  left_join(type_peuplement_colors) %>%
+  filter(Cum_Prop <= 0.8) -> forest_data_80
+```
+
+There are `r nrow(forest_data_80)` stand types that represent 80% of all plots.
+
+```{r plot-dominant-stand-types, echo=FALSE, fig.width = 6, fig.height = 6}
+# Filter color palette to match the dominant stand types
+type_peuplement_colors <- type_peuplement_colors %>%
+  filter(Type.de.peuplement %in% forest_data_80$Type.de.peuplement)
+
+# Create bar plot of dominant stand types
+ggplot(forest_data_80, aes(x = Type.de.peuplement)) +
+  geom_col(aes(y = Prop, fill = Type.de.peuplement)) +
+  scale_fill_manual(values = type_peuplement_colors$Color, 
+                    labels = type_peuplement_colors$Type.de.peuplement) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8)) +
+  theme(legend.position = "none") +
+  labs(x = "", y = "Proportion of plots",
+       title = "Most Common Stand Types (80% of plots)")
+```
+
+The stand types include:
+- F: High forests (R,V non-forested)
+- Species: HET (Beech), CHS (Sessile Oak), CHP (Pedunculate Oak), CHA (Hornbeam), P.L. (Corsican Pine), DOU (Douglas Fir), CHE (Native Oak)
+- Various diameter classes
+- The 4 most common (33%): Beech M, P, E, G diameter classes
+
+## Dominant Diameter Category Class
+
+```{r diameter-class-analysis, echo=FALSE, fig.width = 12, fig.height = 6}
+# Analyze spatial and frequency distribution of diameter classes
+map_plot(forest_data, "Classe.de.categorie.de.diametre.dominant")
+```
+
+```{r diameter-class-reference-table, echo=FALSE, fig.width = 12, fig.height = 6}
+# Create reference table for diameter class codes and descriptions
+table_ccd <- data.frame(
+  CODE = c("S", "E", "IR", "1", "P", "M", "G", "G-", "G+", "T"),
+  DESCRIPTION = c(
+    "REGENERATION (H<3m)",
+    "EDUCATION (non-commercial; d<10cm)",
+    "IRREGULAR (no dominant diameter)",
+    "POLES (10-15cm)",
+    "SMALL TIMBER (20-25cm)",
+    "MEDIUM TIMBER (30-45cm)",
+    "LARGE TIMBER (50-65cm)",
+    "Close to 50 cm",
+    "Close to 65 cm",
+    "VERY LARGE TIMBER (70cm+)"
+  )
+)
+
+# Display the reference table
+kable(table_ccd, col.names = c("CODE", "DESCRIPTION"), 
+      caption = "Dominant Diameter Category Classes (CCD)")
+```
+
+## Coverage of Beech and Sessile Oak
+
+Analysis of Sessile Oak combined with Pedunculate Oak, followed by Hornbeam
+
+```{r species-coverage-maps, echo=FALSE, fig.width = 12, fig.height = 6}
+# Create spatial map of Beech coverage
+p1 <- ggplot(data = forest_data) +
+    geom_sf(aes(geometry = geometry, fill = HET)) +
+    theme_minimal() +
+    theme(
+        panel.grid = element_blank(),      # Remove grid lines
+        axis.text.x = element_blank(),     # Remove axis labels
+        axis.text.y = element_blank()) +
+    theme(legend.position = "none") +
+    scale_fill_continuous(type = "viridis", na.value = "grey90") + 
+    labs(title = "Beech Coverage")
+
+# Create spatial map of combined Oak species coverage
+p2 <- ggplot(data = forest_data %>% 
+             rowwise() %>% 
+             mutate(CH = sum(c(CHS, CHP), na.rm = TRUE)) %>% 
+             ungroup()) +
+    geom_sf(aes(geometry = geometry, fill = CH)) +
+    theme_minimal() +
+    theme(
+        panel.grid = element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank()) +
+    theme(legend.position = "none") +
+    scale_fill_continuous(type = "viridis", na.value = "grey90") +
+    labs(title = "Sessile and Pedunculate Oak")
+
+# Create spatial map of Hornbeam coverage
+p3 <- ggplot(data = forest_data) +
+    geom_sf(aes(geometry = geometry, fill = CHA)) +
+    theme_minimal() +
+    theme(
+        panel.grid = element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank()) +
+    scale_fill_continuous(type = "viridis", na.value = "grey90") + 
+    labs(title = "Hornbeam", fill = "% of forest cover")
+
+# Arrange plots in a 2-column layout
+p1 + p2 + p3 + plot_layout(ncol = 2)
+```
+
+# Comparison: Dominant Species vs Target Species
+
+```{r species-objective-comparison, echo = FALSE, fig.width = 6}
+# Create categorical variable comparing dominant and objective species
+forest_data <- forest_data %>%
+  mutate(essence_diff = case_when(
+    Essence.dominante.1 == ess.obj.SIG ~ "Dominant species",
+    Essence.dominante.2 == ess.obj.SIG ~ "Secondary species",
+    TRUE ~ "Neither")) %>%
+  mutate(essence_diff = factor(essence_diff, 
+                              levels = c("Dominant species", "Secondary species", "Neither")))
+
+# Create spatial visualization of species concordance
+ggplot(forest_data) +
+  geom_sf(aes(geometry = geometry, fill = essence_diff)) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank()) +
+  scale_fill_manual(values = c("#44e26c", "#5a9aee", "#e46262"), 
+                    labels = c("Dominant species", "Secondary species", "Neither")) +
+  labs(title = "Concordance between Target and Dominant Species", 
+       fill = "Concordance")
+
+```
+
+# Species Analysis: Dominance and Basal Area
+
+## Dominant Species Analysis
+
+```{r management-unit-aggregation, include=FALSE}
+# Aggregate data by management unit to have one stand per management unit
+# This creates weighted averages of species proportions based on area and basal area
+ug_data <- forest_data %>%
+  group_by(Identifiant.unite.de.gestion) %>%
+  summarise(
+    # Calculate weighted mean for all species columns
+    across(all_of(especes), ~ weighted.mean(.x, surface.retenue*surf.terriere.moy, na.rm = TRUE)),
+    # Calculate total surface area
+    surface.tot = sum(surface.retenue),
+    # Calculate weighted average basal area
+    surf.terriere.moy.tot = sum(surface.retenue * surf.terriere.moy) / sum(surface.retenue)) %>%
+  ungroup()
+
+# Determine dominant species for each management unit
+ug_data <- ug_data %>%
+  mutate(
+    essence.dominante.1 = apply(select(., all_of(especes)), 1, function(x) {
+      if (all(is.na(x))) {
+        NA_character_
+      } else {
+        especes[which.max(x)]
+      }
+    })
+  )
+
+# Extract unique dominant species
+essence.dominante <- ug_data %>% 
+  select(essence.dominante.1) %>% 
+  unique() %>% 
+  filter(!is.na(essence.dominante.1))
+```
+
+```{r dominant-species-comparison, echo=FALSE, fig.width = 12, fig.height = 4}
+# Compare dominant species at management unit vs. individual stand level
+p1 <- ggplot(ug_data, aes(x = essence.dominante.1)) +
+  geom_bar(aes(y = (..count..), fill = essence.dominante.1)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8)) +
+  theme(legend.position = "none") +
+  labs(x = "", y = "Number of management units", 
+       title = "Dominant Species by Management Unit")
+
+p2 <- ggplot(forest_data, aes(x = Essence.dominante.1)) +
+  geom_bar(aes(y = (..count..), fill = Essence.dominante.1)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8)) +
+  theme(legend.position = "none") +
+  labs(x = "", y = "Number of stands", 
+       title = "Dominant Species by Individual Stand")
+
+p1 + p2
+```
+
+There are `r nrow(essence.dominante)` species that are dominant in at least one management unit.
+These are: `r paste(unique(essence.dominante$essence.dominante.1), collapse = ", ")`
+
+## Basal Area Analysis
+
+```{r basal-area-by-species, echo=FALSE, fig.width = 12, fig.height = 6}
+# Calculate total basal area contribution by species across all forest stands
+ug_surf.terriere <- forest_data %>%
+  summarize(
+    # Calculate weighted basal area for each species
+    across(all_of(especes), ~ sum(.x * surf.terriere.moy*surface.retenue/100, na.rm = TRUE)),
+  ) %>%
+  # Reshape data from wide to long format
+  pivot_longer(cols = all_of(especes), names_to = "Species", values_to = "Basal.Area") %>%
+  mutate(Species = factor(Species, levels = especes)) %>%
+  arrange(desc(Basal.Area)) %>%
+  mutate(Species = factor(Species, levels = unique(Species)))
+
+# Calculate total surface area for normalization
+surf_tot = sum(forest_data$surface.retenue, na.rm = TRUE)
+
+# Create bar plot of basal area by species
+ggplot(ug_surf.terriere, aes(x = Species, y = Basal.Area/surf_tot)) +
+  geom_col(aes(fill = Species)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8)) +
+  theme(legend.position = "none") +
+  labs(x = "", y = "Basal Area (m²/ha)", title = "Basal Area Distribution by Species")
+
+# Extract top 9 species by basal area for modeling
+essence_surf.terriere <- ug_surf.terriere[1:9,] %>% 
+  select(Species) %>% 
+  unique()
+
+# Calculate total basal area
+st_tot = sum(ug_surf.terriere$Basal.Area)
+st_tot/surf_tot
+```
+
+Proposed species to retain for modeling: `r paste(unique(essence_surf.terriere$Species), collapse = ", ")`
+
+## Target Species Analysis
+
+```{r target-species-analysis, echo=FALSE, fig.width = 10, fig.height = 6}
+# Analyze frequency distribution of target species
+forest_data %>% 
+  select(ess.obj.SIG) %>% 
+  table() %>% 
+  as.data.frame() %>% 
+  arrange(desc(Freq)) %>% 
+  mutate(ess.obj.SIG = factor(ess.obj.SIG, levels = unique(ess.obj.SIG))) -> ess.obj.SIG
+
+# Create bar plot of target species frequency
+ggplot(ess.obj.SIG, aes(x = ess.obj.SIG)) +
+  geom_col(aes(y = Freq, fill = ess.obj.SIG)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8)) +
+  theme(legend.position = "none") +
+  labs(x = "", y = "Percentage of plots", title = "Target Species Distribution")
+
+# Extract target species (excluding "SANS" = without target)
+essence.objectif <- forest_data %>% 
+  select(ess.obj.SIG) %>% 
+  unique() %>% 
+  filter(ess.obj.SIG!="SANS")
+```
+
+## FORCEPS Species Correspondence
+
+```{r forceps-species-mapping, include=FALSE}
+# Combine all relevant species from different analyses
+essences <- unique(c(
+  essence.dominante$essence.dominante.1,
+  essence.objectif$ess.obj.SIG,
+  essence_surf.terriere %>% pull(Species) %>% as.character()
+)) %>% unlist()
+essences <- table(essences) %>% as.data.frame()
+
+# Load species correspondence table for FORCEPS model
+forceps_species <- read.csv("data/corresponding_species.csv")
+corresponding_species <- forceps_species %>%
+  left_join(essences, by = c("Retz_Code" = "essences")) %>% 
+  filter(!is.na(Freq))
+```
+
+```{r forceps-correspondence-table, echo = FALSE}
+# Identify rows with missing FORCEPS codes
+rows_to_highlight <- which(is.na(corresponding_species$Forceps_Code))
+
+# Create table with highlighted rows for species without FORCEPS correspondence
+corresponding_species  %>%
+  kbl(caption = "Retz Species and FORCEPS Correspondence") %>%
+  kable_classic(full_width = FALSE) %>%
+  row_spec(rows_to_highlight, background = "#c2bd86")  # Highlight problematic species
+```
+
+**Species mapping notes:**
+- Corsican Pine (Pin laricio) could be mapped to *Pinus nigra*
+- Mixed birch species could be associated with *Betula pendula*
+
+The remaining species have only one criterion (dominant species) and occur only in the plots shown below:
+
+```{r rare-species-spatial-distribution, echo = FALSE}
+# Define rare species codes
+essence_prb <- c("AUL", "MER","PEU", "TIL", "EPS", "MEL")
+
+# Create spatial map showing locations of rare dominant species
+forest_data %>%
+  ggplot() +
+  geom_sf(aes(geometry = geometry, fill = Essence.dominante.1 %in% essence_prb)) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank()) +
+  scale_fill_manual(values = c("#f5f5f5", "red"), labels = c("Common species", "Rare species")) +
+  labs(title = "Spatial Distribution of Rare Dominant Species", 
+       fill = "Species type")
+```
+
+```{r calculate-rare-species-statistics, echo = FALSE}
+# Calculate statistics for rare species
+surface_rare = forest_data %>% 
+  filter(Essence.dominante.1 %in% essence_prb) %>% 
+  pull(surface.retenue) %>% 
+  sum()
+placette_rare = forest_data %>% 
+  filter(Essence.dominante.1 %in% essence_prb) %>% 
+  nrow()
+surface_tot = forest_data %>% 
+  pull(surface.retenue) %>% 
+  sum()
+placette_tot = forest_data %>% nrow()
+```
+
+**Recommendation:** These rare species can be ignored initially as they are not representative of Retz Forest.
+
+They represent `r placette_rare` plots (out of `r placette_tot`, or `r round(placette_rare/placette_tot*100, 2)`%) covering `r surface_rare` ha (out of `r surface_tot` ha, or `r round(surface_rare/surface_tot*100, 2)`%).
+
+```{r rare-species-details-table, echo = FALSE}
+# Create detailed table of stands with rare dominant species
+forest_data %>%
+  filter(Essence.dominante.1 %in% essence_prb) %>%
+  select(Identifiant.peuplement.elementaire, Essence.dominante.1, Essence.dominante.2, 
+         Classe.de.categorie.de.diametre.dominant, ess.obj, surface.retenue, surf.terriere.moy) %>%
+  rename(
+    "Stand ID" = Identifiant.peuplement.elementaire,
+    "Dominant Species 1" = Essence.dominante.1,
+    "Dominant Species 2" = Essence.dominante.2,
+    "Diameter Class" = Classe.de.categorie.de.diametre.dominant,
+    "Target Species" = ess.obj,
+    "Area (ha)" = surface.retenue,
+    "Mean Basal Area" = surf.terriere.moy
+  ) %>%
+  kbl(caption = "Stands with Rare Dominant Species") %>%
+  kable_classic(full_width = FALSE)
+```
+
+# Aggregating Stands by Management Units
+
+This approach may not be appropriate because stand sizes are larger than FORCEPS patches. Averaging would create artificial tree groups that don't exist in reality, ignoring plot heterogeneity. It might be better to retain only the majority surface of each plot.
+
+```{r stand-size-distribution, echo = FALSE}
+# Analyze distribution of retained surface areas
+forest_data %>%
+  filter(!is.na(surface.retenue)) %>%
+  ggplot(aes(x = surface.retenue)) +
+  geom_histogram(aes(y = ..density..), bins = 30) +
+  geom_density(aes(y = ..density..), color = "blue") +
+  theme_minimal() +
+  # Add red line at 0.3 ha (maximum FORCEPS patch size)
+  geom_vline(xintercept = 0.3, color = "red", linetype = "dashed") +
+  labs(title = "Distribution of Retained Surface Area",
+       x = "Retained Surface (ha)",
+       y = "Density") +
+  xlim(0,30)
+```
+
+The red line shows the maximum size of a FORCEPS patch (0.3 ha). For small plots, we might consider that both stand types coexist, but otherwise averaging across stands may not be relevant.
+
+**Note:** There are probably some plots with very large retained surfaces - check for potential data errors.
+
+# Available Water Capacity Analysis
+
+```{r soil-water-capacity, echo = FALSE, fig.width = 10, fig.height = 6}
+# Create spatial visualization of maximum available water capacity
+ggplot(forest_data) +
+  geom_sf(aes(geometry = geometry, fill = RUM)) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),    # Remove grid lines
+    axis.text.x = element_blank(),   # Remove axis labels
+    axis.text.y = element_blank()) +
+  scale_fill_gradientn(colours = (brewer.pal(11, "Spectral"))) +
+  labs(title = "Maximum Available Water Capacity", 
+       fill = "RUM (mm)",
+       caption = "Spatial distribution of soil water retention capacity across Retz Forest")
+```

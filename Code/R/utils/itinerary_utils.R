@@ -1,0 +1,248 @@
+# ===============================================================================
+# FOREST MANAGEMENT ITINERARY GENERATION UTILITIES
+# ===============================================================================
+#
+# Purpose: Generate forest management scenarios and itineraries for FORCEEPS simulations
+# Author: Clementine de Montgolfier
+# Last Modified: 26 août 2025
+#        R Version: 4.4.1 (2024-06-14) -- "Race for Your Life"
+#
+# Description:
+# This file contains utilities for generating forest management itineraries and scenarios
+# for use with the FORCEEPS forest simulation model. It handles different silvicultural
+# approaches including regular management (clearcut), irregular management (selective cutting),
+# and no-intervention scenarios. The utilities calculate species proportions, rotation periods,
+# and cutting intensities based on forest stand characteristics.
+#
+# Key Features:
+# - Generate species proportions for different management approaches
+# - Create paramType-based itineraries for sensitivity analyses
+# - Support multiple management scenarios (clearcut, irregular, no-cut)
+# - Calculate rotation periods based on dominant species
+# - Handle species-specific parameters for cutting intensity
+# - Format itineraries in FORCEEPS-compatible syntax
+#
+# Management Scenarios:
+# 1. ClearCut: Traditional rotation forestry with final harvest and regeneration
+# 2. Irregular: Continuous cover forestry with selective cutting every 5 years
+# 3. NoCut: Natural evolution without human intervention
+#
+# Main Functions:
+# - species_proportion(): Calculate species shares for management scenarios
+# - generate_itinerary_paramType(): Create paramType-based management itineraries
+# - generate_scenario(): Generate complete management scenarios for forest stands
+#
+# Itinerary Format:
+# Format: "years_cycles_paramType_intensity_species;years_cycles_paramType_intensity_species;..."
+# Example: "10_3_0.5_70_FSyl-80;10_3_0.5_0_FSyl-80"
+#
+# ===============================================================================
+
+## Utility Functions -----------------------------------------------------------
+#------------------------------------------------------------------------------#
+
+#' Round Value to Nearest 10
+#'
+#' @param x Numeric value to round.
+#' @return Numeric value rounded to nearest 10.
+round_to_nearest_10 <- function(x) {
+  return(round(x / 10) * 10)
+}
+
+## Species Proportions for Scenarios ------------------------------------------
+#------------------------------------------------------------------------------#
+
+#' Generate Species Proportions for Regular and Irregular Management
+#'
+#' @param retz_id Character. Patch identifier from Retz dataset.
+#' @return List with two elements: sp_reg (regular management) and sp_irreg (irregular management).
+species_proportion <- function(retz_id) {
+  species_columns <- colnames(Retz)[9:23]
+  
+  # Extract present species and their proportions
+  proportions <- Retz %>%
+    filter(Identifiant.peuplement.elementaire == retz_id) %>%
+    select(all_of(species_columns))
+
+  proportions[is.na(proportions)] <- 0
+
+  # Get the top 3 most important species for regular management
+  top_species_reg <- proportions %>%
+    summarise(across(everything(), sum)) %>%
+    pivot_longer(everything(), names_to = "species", values_to = "proportion") %>%
+    arrange(desc(proportion)) %>%
+    slice_head(n = 3) %>%
+    filter(proportion > 0)
+
+  # Format for FORCEPS cut proportion for regular management
+  reg_species_short <- corresponding.species$speciesShortName[match(top_species_reg$species, corresponding.species$Retz_Code)]
+  valid_idx <- !is.na(reg_species_short)
+  reg_species_short <- reg_species_short[valid_idx]
+  reg_proportion <- top_species_reg$proportion[valid_idx]
+
+  sp_reg <- paste0(
+    reg_species_short, "-", 
+    reg_proportion
+  ) %>%
+    paste(collapse = ",")
+
+  # Get the top 4 most important species for irregular management
+  top_species_irreg <- proportions %>%
+    summarise(across(everything(), sum)) %>%
+    pivot_longer(everything(), names_to = "species", values_to = "proportion") %>%
+    arrange(desc(proportion)) %>%
+    slice_head(n = 4) %>%
+    filter(proportion > 0)
+
+  # Format for FORCEPS cut proportion for irregular management (fixed proportion)
+  # Remove NA species in the mapping
+  irreg_species_short <- corresponding.species$speciesShortName[match(top_species_irreg$species, corresponding.species$Retz_Code)]
+  valid_idx <- !is.na(irreg_species_short)
+  
+  irreg_species_short <- irreg_species_short[valid_idx]
+
+  # Format for FORCEPS cut proportion for irregular management (fixed proportion)
+  sp_irreg <- paste0(
+    irreg_species_short, "-", 
+    25 # fixed proportion for irregular management
+  ) %>%
+    paste(collapse = ",")
+  print(sp_reg)
+  print(sp_irreg)
+  return(list(sp_reg, sp_irreg))
+}
+
+## Itinerary Generation --------------------------------------------------------
+#------------------------------------------------------------------------------#
+
+#' Generate ForCEEPS Itinerary for Parameter Type Studies
+#'
+#' @param rotation Integer. Rotation period in years (default = 10).
+#' @param basal_area Numeric. Target basal area (default = 25).
+#' @param paramType Numeric. Parameter type value (default = 0.5).
+#' @param species_share Character vector. Species shares (default = c("FSyl_80")).
+#' @param first_rotation Integer. First rotation period, if different from regular rotation.
+#' @param total_years Integer. Total simulation years (default = 80).
+#' @param cycles Integer. Number of cycles (default = 3).
+#' @return Character string representing the complete itinerary.
+generate_itinerary_paramType <- function(
+    rotation = 10,
+    basal_area = 25,
+    paramType = 0.5,
+    species_share = c("FSyl_80"),
+    first_rotation = NULL,
+    total_years = 80,
+    cycles = 3) {
+  
+  # Helper function to format species string
+  format_species <- function(species) {
+    sapply(species, function(sp) {
+      parts <- strsplit(sp, "_")[[1]]
+      paste0(parts[1], "-", parts[2])
+    }) %>%
+      paste(collapse = ",")
+  }
+  
+  # Handle first rotation
+  if (is.null(first_rotation)) {
+    first_rotation <- rotation
+  }
+  
+  # Calculate number of rotations
+  n_rotations <- ceiling((total_years - first_rotation) / rotation) + 1
+  
+  # Build first rotation string
+  itinerary_first <- paste0(
+    paste(first_rotation, cycles, paramType, basal_area, sep = "_"), "_",
+    format_species(species_share)
+  )
+  
+  # Build subsequent rotation string
+  itinerary_other <- paste0(
+    paste(rotation, cycles, paramType, basal_area, sep = "_"), "_",
+    format_species(species_share)
+  )
+  
+  # Combine into final itinerary string
+  itinerary <- paste(
+    c(itinerary_first, rep(itinerary_other, n_rotations - 1)),
+    collapse = ";"
+  )
+  
+  return(itinerary)
+}
+
+## Scenario Generation ---------------------------------------------------------
+#------------------------------------------------------------------------------#
+
+#' Generate Management Scenarios for ForCEEPS Simulation
+#'
+#' @param essence Character. Dominant species code.
+#' @param median_age Numeric. Median age of the stand.
+#' @param species_proportion List. Species proportions for regular and irregular management.
+#' @return Character vector with three scenarios: clearcut, irregular, and no-cut.
+generate_scenario <- function(essence, median_age, species_proportion) {
+  sp_irreg <- species_proportion[[2]]
+  sp_reg <- species_proportion[[1]]
+
+  # Default values if species not found
+  default_rotation_sp <- 100
+  default_ba_irregulier <- 20
+
+  # Get specific values for the species
+  param_row <- params %>% filter(essence == !!essence)
+  rotation_sp <- 
+    ifelse(nrow(param_row) > 0, param_row$rotation_sp, default_rotation_sp)
+  ba_irregulier <- 
+    ifelse(nrow(param_row) > 0, param_row$ba_irregulier, default_ba_irregulier)
+
+  # ClearCut scenario - Clear-cut with regeneration
+  scenario_clearCut <- ""
+  simul_time <- 0
+
+  while (simul_time < tot_simul_time) {
+    ClearcutTime <- (rotation_sp - median_age) %>%
+      round_to_nearest_10() %>%
+      max(1, .) %>%
+      min(tot_simul_time - simul_time, .)
+
+    # Thinning operations before final cut
+    if (ClearcutTime > 10) {
+      n <- ClearcutTime / 10 - 1
+      for (i in 1:n) {
+        scenario_clearCut <- paste0(
+          scenario_clearCut, "10_3_0.5_70%_",
+          sp_reg,
+          ";"
+        )
+      }
+    }
+
+    # Final cut and regeneration
+    scenario_clearCut <- paste0(
+      scenario_clearCut,
+      "10_3_0.5_0%_FSyl-80", ";"
+    )
+
+    median_age <- 0
+    simul_time <- simul_time + ClearcutTime
+  }
+
+  # Irregular scenario - Irregular management
+  scenario_irregular <- ""
+  simul_time <- 0
+
+  while (simul_time < tot_simul_time) {
+    cut_time <- 5 %>% min(tot_simul_time - simul_time, .)
+    scenario_irregular <- paste0(
+      scenario_irregular,
+      cut_time, "_3_0.5_90%_",
+      sp_irreg, ";"
+    )
+    simul_time <- simul_time + cut_time
+  }
+
+  # NoCut scenario - No intervention
+  scenario_noCut <- paste0(tot_simul_time, "_3_0.5_0%_FSyl-80")
+  return(c(scenario_clearCut, scenario_irregular, scenario_noCut))
+}

@@ -1,0 +1,245 @@
+# Forceps setup file
+
+siteFileName = forceps.site
+
+speciesFileName = forceps.species
+defaultClimateFileName = forceps.climate.bern
+defaultClimateIsDaily = false
+
+bareGround = false
+bareGroundPatchN = 10
+bareGroundPatchArea = 1000
+
+inventory = true
+inventoryFileName = test.inv
+
+adaptiveMode = false
+adaptiveReadSpeciesParametersInCompleteExport = false
+adaptiveInputCompleteExport = inputCompleteExport.adaptive
+# adaptiveVarianceLevel: ADAPTIVE_VARIANCE_LEVEL_LOW, _VARIANCE_LEVEL_MEDIUM or ADAPTIVE_VARIANCE_LEVEL_HIGH
+adaptiveVarianceLevel = ADAPTIVE_VARIANCE_LEVEL_LOW
+
+# adaptiveTradeOffOption: ADAPTIVE_NO_TRADEOFF_OPTION, ADAPTIVE_TRADEOFF_DRTOL_OPTION, ADAPTIVE_TRADEOFF_G_OPTION or ADAPTIVE_MULTI_NORMAL_OPTION
+adaptiveTradeOffOption = ADAPTIVE_MULTI_NORMAL_OPTION
+
+adaptiveInventoryPatchN = 50
+adaptiveInventoryPatchArea = 800
+
+adaptiveInitial_laSd = 0.03
+adaptiveInitial_drtolSd = 0.1
+adaptiveInitial_gSd = 5
+
+adaptiveExtraVariance_drtol = 0.03
+adaptiveExtraVariance_g = 5
+
+################### adaptive2 ###################
+
+# User must choose adaptiveMode or adaptive2Mode but not both
+
+adaptive2Mode = false
+adaptive2FileName = forcepsAdaptive2.trait
+
+
+#####################################################
+
+
+# fc+ld-8.11.2022
+adaptiveConstantVarianceMode = false
+adaptiveConstantVariance_laSd = 0.8
+adaptiveConstantVariance_gSd = 32
+adaptiveConstantVariance_drtolSd = 0.03
+
+adaptiveMultiNormalCorrelation_g_la = 0
+adaptiveMultiNormalCorrelation_drtol_g = -0.5
+adaptiveMultiNormalCorrelation_la_drtol = 0
+
+adaptiveTreeReproductionWeight = false
+
+# fc+ld-4.1.2023
+adaptiveHeritability = 0.3
+regenerationForclimLike_withMigration = false
+# ld-3.7.2023 Added a migration multiplicator to control the number of migrant per patch each year
+migrationFactor = 1
+
+initDate = 2020
+#randomSeed = 79
+randomSeed = 102
+
+#distProba = 0
+distProba = 0.005
+
+#deathProbaCoef = 0
+deathProbaCoef = 4.605
+
+#slowGrowthProba = 0
+slowGrowthProba = 0.368
+
+slowGrowthTime = 2
+
+potentialSpeciesList = 15 17 23
+#potentialSpeciesList = 2
+#potentialSpeciesList = 2 22 17 27
+#potentialSpeciesList = 0 8 17 18
+#potentialSpeciesList = 17 23
+
+# If true, trees get a real crown length
+crownLengthOption = true
+crownLengthImpactOnGrowth = true
+
+# Regeneration: one option out of these 3 must be selected
+
+regenerationMaxTreesPerPatchOption = false
+regenerationMaxTreesPerPatchNumber = 50
+regenerationMaxTreesPerPatchWithNTries = false
+regenerationMaxTreesPerPatchNTries = 5
+
+regenerationSeedlingsPerPatchOption = false
+regenerationSeedlingsPerPatchNumber = 100
+
+regenerationForclimLike = true
+
+
+# Regeneration: additional options
+
+regenerationActualSpeciesOnly = false
+regenerationActualSpeciesOnlyAtPatchLevel = false
+regenerationConstraint = false
+# fc+xm+lv-10.5.2021 added regenerationActualSpeciesOnlyAbundance
+regenerationActualSpeciesOnlyAbundance = false
+# fc+ld-24.2.2023 addedregenerationSpeciesContributionsBasedAbundance
+regenerationSpeciesContributionsBasedAbundance = false
+
+# ld-8.6.2023 added an abondance contribution to regeneration control option from 0 (no abundance-regeneration feedback) to 1 (regeneration is fully dependant on relative abundance)
+
+establishmentProbabilityCoef = 0.1
+
+ppMothActivated = false 
+ppMothRegionalPercentageOfInfestedTreesOption = false
+ppMothRegionalPercentageOfInfestedTrees = 0.12
+
+variability = false
+variabilityFileName = forceps.fitnessVariability
+
+climaticFitness = false
+fitnessImpactsGrowth = false
+
+management = false
+managementFileName = forceps.management
+
+droughtStressOption = FORCLIM_LIKE_DROUGHT_STRESS
+#droughtStressOption = PATCH_LEVEL_DROUGHT_STRESS
+
+# Options for Phenofit Integration
+
+phenofitActivated = false
+
+phenofitPath = Phenology/
+
+leafLossImpactOnGrowthFactor = 0
+frostLeafLossImpactOnLAI = false
+
+reproductiveSuccessImpactOnRege = false
+
+
+# Extra options
+canopyLayerThickness = 1
+
+crownA1ReversionFactor = 0
+
+variableAllometry = false
+
+treeHeightFromInventory = false
+
+conicalCanopyShadows = false
+
+equilibriumInitialCanopy = false
+
+equilibriumError = 0.01
+
+layeredCrownAndHeightPlasticityCalculation = false
+
+speciesCrownShapeParameters = false
+
+speciesSpecificLeafArea = false
+
+densityDependentLightAttenuation = false
+
+leafPhenologyImpactOnLightCompetition = false
+
+leafPhenologyImpactOnLightCompetition_GDDweights = false
+
+percentOfRainExclusion = 0 
+
+deadWoodActivated = false
+initialLitterBiomassInformation = initialLitterBiomass(Phal(5000,40);Qile(3000,5))
+
+yassoActivated = false
+yassoParametersFileName = yassoParameters.txt
+yassoSpeciesFileName = YassoSpeciesParameters.csv
+
+soilCarbonEquilibriumInitialization = false
+soilCarbonInitializationInformation = soilCarbonInitializationInformation(3000;1970;2020;0;5;50)
+#soilCarbonInitializationInformation = soilCarbonInitializationInformation(calibrationYearLength;climateStartYear;climateEndYear;yearlyMortalityPercentRate;yearlyCutPercentRate;extractedBranchPercentage)
+
+canopyStructureMemory = false
+microClimateActivated = false
+activateTREMCalculator = false
+
+# Options for Sureau linking
+
+sureauActivated = false
+
+sureauSoilParametersFileName = NA
+
+sureauExplicitScheme = False
+
+sureauSmallTimeStep = 1200
+
+sureauTimeStep = 1
+
+sureauClassNbPerSpecies = 3
+
+sureauMortalityModule = false
+
+sureauGrowthModule = false
+
+sureau_drtolFromSMRI = false
+
+# WRITING_DISABLED, WRITING_FREQUENCY_YEAR, WRITING_FREQUENCY_DAY, or a number of seconds
+sureauWritingFrequency = 3600
+
+yearToYearPLC = false
+
+growthToCavitationRepairConversionFactor = 1
+
+droughtInducedDefoliation = false
+
+droughtInducedDefoliationImpactOnGrowth = false 
+
+droughtInducedDefoliationImpactOnLightCompetition = false
+
+cavitationMortalityTresholdPercentage = 0
+
+# Can be set either to a number of years > 1 or to -1. In wase -1 is used, no delay is involved and mortality from PLC is evaluated each year
+plcMortalityDelayYear = -1
+
+# If true, must be used with plcMortalityDelayYear = 1 is false, plcMortalityDelayYear must be a different int than 1
+resetPLCAfterMortalityTest = false 
+
+explicitRootLength = false
+rootLengthPlasticity = false
+
+
+# LAI_BASED_TRUNK_INTERFACE_AREA_OPTION, AGGREGATE_TRUNK_INTERFACE_AREA_OPTION, SUMMED_TRUNK_INTERFACE_AREA_OPTION
+
+sureauTrunkInterfaceAreaOption = AGGREGATE_TRUNK_INTERFACE_AREA_OPTION
+
+# SPECIFIC_TO_TREE_TYPE, GROWTH_BASED_ONLY (original method implemented by Tanguy) or SPECIFIC_TO_TREE_TYPE_GROWTH_DEPENDENT (mix of both methods)
+cavitationReparationMethod = GROWTH_BASED_ONLY
+
+rootDepthEquilibriumCalibration = false
+
+# fc-24.3.2025 Added this missing param, found in Tanguy's Phoreau setup file
+rootDepthInitializationInformation = rootDepthInitializationInformation()
+
+
